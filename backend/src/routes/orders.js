@@ -3,7 +3,7 @@ const db = require('../db/schema');
 const auth = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { sendPayment, getBalance } = require('../utils/stellar');
-const { sendOrderEmails } = require('../utils/mailer');
+const { sendOrderEmails, sendLowStockAlert } = require('../utils/mailer');
 const { err } = require('../middleware/error');
 
 // POST /api/orders - buyer places + pays for an order
@@ -74,6 +74,15 @@ router.post('/', auth, validate.order, async (req, res) => {
       order: { id: orderId, quantity, total_price: totalPrice, stellar_tx_hash: txHash },
       product, buyer, farmer,
     }).catch(e => console.error('Email notification failed:', e.message));
+
+    // Low-stock check — send alert once per threshold crossing
+    const updated = db.prepare('SELECT quantity, low_stock_threshold, low_stock_alerted FROM products WHERE id = ?').get(product_id);
+    if (updated.quantity <= updated.low_stock_threshold && !updated.low_stock_alerted) {
+      db.prepare('UPDATE products SET low_stock_alerted = 1 WHERE id = ?').run(product_id);
+      sendLowStockAlert({ product: { ...product, quantity: updated.quantity }, farmer })
+        .catch(e => console.error('Low-stock alert failed:', e.message));
+    }
+    // Reset alert flag if stock was replenished above threshold (handled on edit)
 
     res.json({ success: true, orderId, status: 'paid', txHash, totalPrice });
   } catch (e) {

@@ -110,10 +110,48 @@ router.post('/', auth, validate.product, (req, res) => {
     : null;
 
   const result = db.prepare(
-    'INSERT INTO products (farmer_id, name, description, category, price, quantity, unit, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(req.user.id, name.trim(), description || '', category || 'other', price, quantity, unit || 'unit', safeImageUrl);
+    'INSERT INTO products (farmer_id, name, description, category, price, quantity, unit, image_url, low_stock_threshold) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(req.user.id, name.trim(), description || '', category || 'other', price, quantity, unit || 'unit', safeImageUrl, parseInt(req.body.low_stock_threshold) || 5);
 
   res.json({ success: true, id: result.lastInsertRowid, message: 'Product listed' });
+});
+
+// PATCH /api/products/:id - farmer updates own product
+router.patch('/:id', auth, (req, res) => {
+  if (req.user.role !== 'farmer') return err(res, 403, 'Only farmers can edit products', 'forbidden');
+
+  const product = db.prepare('SELECT * FROM products WHERE id = ? AND farmer_id = ?').get(req.params.id, req.user.id);
+  if (!product) return err(res, 404, 'Not found or not yours', 'not_found');
+
+  const allowed = ['name', 'description', 'price', 'quantity', 'unit', 'category', 'low_stock_threshold'];
+  const updates = {};
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+  if (Object.keys(updates).length === 0) return err(res, 400, 'No valid fields to update', 'validation_error');
+
+  if (updates.price !== undefined) {
+    updates.price = parseFloat(updates.price);
+    if (isNaN(updates.price) || updates.price <= 0) return err(res, 400, 'Price must be positive', 'validation_error');
+  }
+  if (updates.quantity !== undefined) {
+    updates.quantity = parseInt(updates.quantity, 10);
+    if (isNaN(updates.quantity) || updates.quantity < 0) return err(res, 400, 'Quantity must be non-negative', 'validation_error');
+  }
+  if (updates.low_stock_threshold !== undefined) {
+    updates.low_stock_threshold = parseInt(updates.low_stock_threshold, 10);
+    if (isNaN(updates.low_stock_threshold) || updates.low_stock_threshold < 0) return err(res, 400, 'Threshold must be non-negative', 'validation_error');
+  }
+
+  // Reset low_stock_alerted if quantity is being raised above threshold
+  const newQty = updates.quantity ?? product.quantity;
+  const newThreshold = updates.low_stock_threshold ?? product.low_stock_threshold ?? 5;
+  if (newQty > newThreshold) updates.low_stock_alerted = 0;
+
+  const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+  db.prepare(`UPDATE products SET ${setClauses} WHERE id = ?`).run(...Object.values(updates), req.params.id);
+
+  res.json({ success: true, message: 'Product updated' });
 });
 
 // DELETE /api/products/:id

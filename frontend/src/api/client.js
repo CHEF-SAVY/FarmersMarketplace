@@ -96,6 +96,7 @@ export const api = {
   createProduct: (body) => request('/products', { method: 'POST', body }),
   getMyProducts: () => request('/products/mine/list'),
   deleteProduct: (id) => request(`/products/${id}`, { method: 'DELETE' }),
+  updateProduct: (id, body) => request(`/products/${id}`, { method: 'PATCH', body }),
 
   // Upload a product image — returns { imageUrl }
   uploadProductImage: (file) => {
@@ -111,6 +112,7 @@ export const api = {
   getWallet: () => request('/wallet'),
   getTransactions: () => request('/wallet/transactions'),
   fundWallet: () => request('/wallet/fund', { method: 'POST' }),
+  getAnalytics: () => request('/analytics/farmer'),
   getCategories: function() { return request('/products/categories'); },
   getProduct: function(id) { return request('/products/' + id); },
   createProduct: function(body) { return request('/products', { method: 'POST', body: body }); },
