@@ -1,4 +1,9 @@
 const BASE = '/api';
+let loadingCallback = null;
+
+export function setLoadingCallback(callback) {
+  loadingCallback = callback;
+}
 
 // Access token lives in memory only — never in localStorage
 let accessToken = null;
@@ -24,6 +29,9 @@ async function refreshAccessToken() {
 }
 
 async function request(path, options = {}) {
+  loadingCallback?.(true);
+  try {
+    const res = await fetch(`${BASE}${path}`, {
   let res;
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -35,6 +43,12 @@ async function request(path, options = {}) {
       },
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  } finally {
+    loadingCallback?.(false);
+  }
   } catch {
     throw new Error('Failed to fetch');
   }
