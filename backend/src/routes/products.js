@@ -92,6 +92,20 @@ router.get('/:id', (req, res) => {
   res.json({ success: true, data: product });
 });
 
+// PATCH /api/products/:id/restock - farmer only
+router.patch('/:id/restock', auth, (req, res) => {
+  if (req.user.role !== 'farmer') return err(res, 403, 'Only farmers can restock products', 'forbidden');
+  
+  const quantity = parseInt(req.body.quantity, 10);
+  if (isNaN(quantity) || quantity <= 0) return err(res, 400, 'Quantity must be a positive integer', 'validation_error');
+
+  const product = db.prepare('SELECT * FROM products WHERE id = ? AND farmer_id = ?').get(req.params.id, req.user.id);
+  if (!product) return err(res, 404, 'Product not found or not yours', 'not_found');
+
+  db.prepare('UPDATE products SET quantity = quantity + ? WHERE id = ?').run(quantity, req.params.id);
+  res.json({ success: true, message: 'Restocked successfully' });
+});
+
 // POST /api/products - farmer only
 router.post('/', auth, validate.product, (req, res) => {
   if (req.user.role !== 'farmer') return err(res, 403, 'Only farmers can list products', 'forbidden');

@@ -36,6 +36,7 @@ const EMPTY_FORM = { name: '', description: '', price: '', quantity: '', unit: '
 export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [restockVals, setRestockVals] = useState({});
   const [msg, setMsg] = useState(null);
 
   // image state
@@ -133,6 +134,18 @@ export default function Dashboard() {
     try { await api.deleteProduct(id); load(); } catch {}
   }
 
+  async function handleRestock(id) {
+    const qty = parseInt(restockVals[id], 10);
+    if (isNaN(qty) || qty <= 0) return alert('Enter a valid positive number to restock.');
+    try {
+      await api.restockProduct(id, qty);
+      setRestockVals({ ...restockVals, [id]: '' });
+      load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   return (
     <div style={s.page}>
       <div style={s.title}>🌾 Farmer Dashboard</div>
@@ -223,7 +236,23 @@ export default function Dashboard() {
                   <div style={{ fontSize: 13, color: '#666' }}>{p.price} XLM · {p.quantity} {p.unit}</div>
                 </div>
               </div>
-              <button style={s.del} onClick={() => handleDelete(p.id)}>Remove</button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="+Qty"
+                  style={{ ...s.input, width: 70, marginBottom: 0, padding: '4px 8px' }}
+                  value={restockVals[p.id] || ''}
+                  onChange={e => setRestockVals({ ...restockVals, [p.id]: e.target.value })}
+                />
+                <button
+                  style={{ ...s.btn, padding: '4px 10px', fontSize: 12, background: '#218c74' }}
+                  onClick={() => handleRestock(p.id)}
+                >
+                  Restock
+                </button>
+                <button style={s.del} onClick={() => handleDelete(p.id)}>Remove</button>
+              </div>
             </div>
           ))}
         </div>

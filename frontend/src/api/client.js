@@ -95,6 +95,7 @@ export const api = {
   getProduct: (id) => request(`/products/${id}`),
   createProduct: (body) => request('/products', { method: 'POST', body }),
   getMyProducts: () => request('/products/mine/list'),
+  restockProduct: (id, quantity) => request('/products/' + id + '/restock', { method: 'PATCH', body: { quantity } }),
   deleteProduct: (id) => request(`/products/${id}`, { method: 'DELETE' }),
 
   // Upload a product image — returns { imageUrl }
