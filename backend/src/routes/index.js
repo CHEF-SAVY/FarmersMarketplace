@@ -60,41 +60,76 @@ const sendLimiter = rateLimit({
   },
 });
 
-router.get("/api/health", (_, res) => res.json({ status: "ok" }));
-router.get("/api/v1/health", (_, res) =>
-  res.json({ status: "ok", version: "v1" }),
-);
+// Health check — exempt from rate limiting
+router.get('/api/health',    (_, res) => res.json({ status: 'ok' }));
+router.get('/api/v1/health', (_, res) => res.json({ status: 'ok', version: 'v1' }));
 
-router.use("/api", generalLimiter);
+// Apply general limiter to all /api/* routes (health already handled above)
+router.use('/api', generalLimiter);
 
-router.use("/api/v1/auth/login", authLimiter);
-router.use("/api/v1/auth/register", authLimiter);
-router.use("/api/auth/login", authLimiter);
-router.use("/api/auth/register", authLimiter);
-router.use("/api/auth/refresh", authLimiter);
+// Stricter auth limiter
+router.use('/api/v1/auth/login',    authLimiter);
+router.use('/api/v1/auth/register', authLimiter);
+router.use('/api/auth/login',       authLimiter);
+router.use('/api/auth/register',    authLimiter);
+router.use('/api/auth/refresh',     authLimiter);
 
-router.use("/api/v1/orders", orderLimiter);
-router.use("/api/orders", orderLimiter);
-router.use("/api/v1/wallet/fund", fundLimiter);
-router.use("/api/wallet/fund", fundLimiter);
-router.use("/api/wallet/send", sendLimiter);
+// Resource-specific limiters
+router.use('/api/v1/orders',  orderLimiter);
+router.use('/api/orders',     orderLimiter);
+router.use('/api/v1/wallet/fund', fundLimiter);
+router.use('/api/wallet/fund',    fundLimiter);
+router.use('/api/wallet/send',    sendLimiter);
 
-router.use("/api/v1/auth", require("./auth"));
-router.use("/api/v1/products", require("./products"));
-router.use("/api/v1/orders", require("./orders"));
-router.use("/api/v1/wallet", require("./wallet"));
-router.use("/api/v1/farmers", require("./farmers"));
-router.use("/api/v1", require("./reviews"));
-router.use("/api/v1/rates", require("./rates"));
+// Versioned routes
+router.use('/api/v1/auth',     require('./auth'));
+router.use('/api/v1/products', require('./products'));
+router.use('/api/v1/orders',   require('./orders'));
+router.use('/api/v1/wallet',   require('./wallet'));
+router.use('/api/v1/farmers',  require('./farmers'));
 
-router.use("/api/auth", require("./auth"));
-router.use("/api/products", require("./products"));
-router.use("/api/orders", require("./orders"));
-router.use("/api/wallet", require("./wallet"));
-router.use("/api/farmers", require("./farmers"));
-router.use("/api", require("./reviews"));
-router.use("/api/analytics", require("./analytics"));
-router.use("/api/admin", require("./admin"));
-router.use("/api/rates", require("./rates"));
+// Non-versioned routes (used by frontend)
+router.use('/api/auth',      require('./auth'));
+router.use('/api/products',  require('./products'));
+router.use('/api/orders',    require('./orders'));
+router.use('/api/wallet',    require('./wallet'));
+router.use('/api/analytics', require('./analytics'));
+router.use('/api/admin',     require('./admin'));
+
+router.use('/api/v1',          require('./reviews'));
+
+router.use('/api/v1/rates',  require('./rates'));
+router.use('/api/rates',     require('./rates'));
+
+// Legacy routes
+router.use('/api/auth',     require('./auth'));
+router.use('/api/products', require('./products'));
+router.use('/api/orders',   require('./orders'));
+router.use('/api/wallet',   require('./wallet'));
+router.use('/api/contracts', require('./contracts'));
+
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+router.get('/api/v1/health', (_, res) => res.json({ status: 'ok', version: 'v1' });
+
+module.exports = router;
+
+// Non-versioned routes (used by frontend)
+router.use('/api/auth',      require('./auth'));
+router.use('/api/products',  require('./products'));
+router.use('/api/orders',    require('./orders'));
+router.use('/api/wallet',    require('./wallet'));
+router.use('/api/analytics', require('./analytics'));
+// Unversioned routes under /api
+router.use('/api/auth',     require('./auth'));
+router.use('/api/products', require('./products'));
+router.use('/api/orders',   require('./orders'));
+router.use('/api/wallet',   require('./wallet'));
+router.use('/api/farmers',  require('./farmers'));
+
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+router.use('/api',          require('./reviews'));
+
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
 module.exports = router;
