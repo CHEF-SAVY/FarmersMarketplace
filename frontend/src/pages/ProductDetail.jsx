@@ -34,12 +34,6 @@ export default function ProductDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [product, setProduct] = useState(null);
-  const [qty, setQty] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
-  const { usd } = useXlmRate();
 
   const [product, setProduct]   = useState(null);
   const [reviews, setReviews]   = useState([]);
@@ -47,6 +41,7 @@ export default function ProductDetail() {
   const [loading, setLoading]   = useState(false);
   const [result, setResult]     = useState(null);
   const [error, setError]       = useState('');
+  const { usd } = useXlmRate();
 
   // Review form state
   const [paidOrders, setPaidOrders]     = useState([]);
@@ -92,15 +87,19 @@ export default function ProductDetail() {
   async function handleBuy() {
     if (!user) return navigate('/login');
     if (user.role === 'farmer') return setError('Farmers cannot place orders');
+    
     setLoading(true);
     setError('');
+    
+    // Generate a unique idempotency key for this specific purchase attempt
+    const idempotencyKey = `buy_${user.id}_${product.id}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    
     try {
-      const res = await api.placeOrder({ product_id: product.id, quantity: qty });
+      const res = await api.placeOrder({ product_id: product.id, quantity: qty }, idempotencyKey);
       setResult(res);
     } catch (e) {
       setError(getStellarErrorMessage(e));
-    } finally {
-      setLoading(false);
+      setLoading(false); // Re-enable only on error
     }
   }
 
@@ -191,9 +190,19 @@ export default function ProductDetail() {
         <div style={s.total}>Total: <strong>{total} XLM</strong></div>
         {error && <div style={s.err}>{error}</div>}
 
-        <button style={s.btn} onClick={handleBuy} disabled={loading}>
-          {loading ? 'Processing payment...' : `Buy Now · ${total} XLM`}
+        <button 
+          style={{ ...s.btn, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }} 
+          onClick={handleBuy} 
+          disabled={loading}
+        >
+          {loading && <div className="spinner-sm" style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />}
+          {loading ? 'Processing...' : `Buy Now · ${total} XLM`}
         </button>
+
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          .spinner-sm { display: inline-block; }
+        `}</style>
       </div>
 
       {/* Reviews section */}
