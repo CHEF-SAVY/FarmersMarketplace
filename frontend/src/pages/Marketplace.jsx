@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { useXlmRate } from '../utils/useXlmRate';
 import StarRating from '../components/StarRating';
 import Pagination from '../components/Pagination';
 
@@ -55,6 +56,7 @@ export default function Marketplace() {
   const [page, setPage]             = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const navigate = useNavigate();
+  const { usd } = useXlmRate();
   const searchDebounce = useRef(null);
 
   const load = useCallback(async (f, p = 1) => {
@@ -195,6 +197,7 @@ export default function Marketplace() {
               </div>
               <div style={s.desc}>{p.description || 'Fresh from the farm'}</div>
               <div style={s.price}>{p.price} XLM <span style={{ fontSize: 13, fontWeight: 400 }}>/ {p.unit}</span></div>
+              {usd(p.price) && <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{usd(p.price)} <span style={{ fontSize: 10, color: '#aaa' }}>(approx.)</span></div>}
               <div style={s.qty}>{p.quantity} {p.unit} available</div>
               {p.review_count > 0 && (
                 <div style={{ marginTop: 6 }}>

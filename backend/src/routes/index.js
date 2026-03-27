@@ -82,6 +82,9 @@ router.use('/api/admin',     require('./admin'));
 
 router.use('/api/v1',          require('./reviews'));
 
+router.use('/api/v1/rates',  require('./rates'));
+router.use('/api/rates',     require('./rates'));
+
 router.get('/api/v1/health', (_, res) => res.json({ status: 'ok', version: 'v1' }));
 
 // Non-versioned routes (used by frontend)

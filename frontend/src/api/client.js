@@ -121,6 +121,8 @@ export const api = {
   getWallet: () => request('/wallet'),
   getTransactions: () => request('/wallet/transactions'),
   fundWallet: () => request('/wallet/fund', { method: 'POST' }),
+
+  getXlmRate: () => request('/rates/xlm-usd'),
   getAnalytics: () => request('/analytics/farmer'),
   updateProduct: (id, body) => request(`/products/${id}`, { method: 'PATCH', body }),
   updateOrderStatus: (id, status) => request(`/orders/${id}/status`, { method: 'PATCH', body: { status } }),

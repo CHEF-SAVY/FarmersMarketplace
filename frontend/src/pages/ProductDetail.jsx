@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { getStellarErrorMessage } from '../utils/stellarErrors';
+import { useXlmRate } from '../utils/useXlmRate';
 import StarRating from '../components/StarRating';
 
 const s = {
@@ -33,6 +34,12 @@ export default function ProductDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+  const [qty, setQty] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const { usd } = useXlmRate();
 
   const [product, setProduct]   = useState(null);
   const [reviews, setReviews]   = useState([]);
@@ -167,6 +174,9 @@ export default function ProductDetail() {
 
         <div style={s.desc}>{product.description || 'Fresh from the farm.'}</div>
         <div style={s.price}>{product.price} XLM <span style={{ fontSize: 14, fontWeight: 400 }}>/ {product.unit}</span></div>
+        {usd(product.price) && (
+          <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>{usd(product.price)} per {product.unit} <span style={{ fontSize: 11, color: '#bbb' }}>(approx. rate)</span></div>
+        )}
         <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>{product.quantity} {product.unit} in stock</div>
 
         <div style={s.row}>
