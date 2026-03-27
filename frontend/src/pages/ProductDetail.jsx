@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useFavorites } from '../context/FavoritesContext';
 import { getStellarErrorMessage } from '../utils/stellarErrors';
 import { useXlmRate } from '../utils/useXlmRate';
 import StarRating from '../components/StarRating';
@@ -9,6 +10,9 @@ import StarRating from '../components/StarRating';
 const s = {
   page:       { maxWidth: 640, margin: '40px auto', padding: 24 },
   card:       { background: '#fff', borderRadius: 12, padding: 32, boxShadow: '0 1px 8px #0001', marginBottom: 24 },
+  header:     { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 16 },
+  headerContent: { flex: 1 },
+  favoriteBtn: { background: 'none', border: 'none', fontSize: 32, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, flexShrink: 0 },
   name:       { fontSize: 28, fontWeight: 700, color: '#2d6a4f', marginBottom: 4 },
   farmer:     { color: '#888', marginBottom: 8 },
   desc:       { color: '#555', marginBottom: 24, lineHeight: 1.6 },
@@ -33,20 +37,15 @@ const s = {
 export default function ProductDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { isFavorited, toggleFavorite } = useFavorites();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const { usd } = useXlmRate();
-
-  const [product, setProduct]   = useState(null);
-  const [reviews, setReviews]   = useState([]);
-  const [qty, setQty]           = useState(1);
-  const [loading, setLoading]   = useState(false);
-  const [result, setResult]     = useState(null);
-  const [error, setError]       = useState('');
 
   // Review form state
   const [paidOrders, setPaidOrders]     = useState([]);
@@ -155,17 +154,29 @@ export default function ProductDetail() {
           ? <img src={product.image_url} alt={product.name} style={{ width: '100%', maxHeight: 280, objectFit: 'cover', borderRadius: 10, marginBottom: 16 }} />
           : <div style={{ fontSize: 48, marginBottom: 12 }}>🥬</div>
         }
-        <div style={s.name}>{product.name}</div>
-        <div style={s.farmer}>
-          Sold by{' '}
-          <span
-            style={{ cursor: 'pointer', textDecoration: 'underline', color: '#2d6a4f' }}
-            onClick={() => navigate(`/farmer/${product.farmer_id}`)}
-          >
-            {product.farmer_name}
-          </span>
+        <div style={s.header}>
+          <div style={s.headerContent}>
+            <div style={s.name}>{product.name}</div>
+            <div style={s.farmer}>
+              Sold by{' '}
+              <span
+                style={{ cursor: 'pointer', textDecoration: 'underline', color: '#2d6a4f' }}
+                onClick={() => navigate(`/farmer/${product.farmer_id}`)}
+              >
+                {product.farmer_name}
+              </span>
+            </div>
+          </div>
+          {user && user.role === 'buyer' && (
+            <button
+              style={s.favoriteBtn}
+              onClick={() => toggleFavorite(product.id).catch(() => {})}
+              title={isFavorited(product.id) ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorited(product.id) ? '❤️' : '🤍'}
+            </button>
+          )}
         </div>
-        <div style={s.farmer}>Sold by {product.farmer_name}</div>
 
         {/* Average rating */}
         <div style={{ marginBottom: 16 }}>

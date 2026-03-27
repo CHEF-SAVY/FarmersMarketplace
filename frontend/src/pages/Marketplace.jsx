@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { useFavorites } from '../context/FavoritesContext';
 import { useXlmRate } from '../utils/useXlmRate';
 import StarRating from '../components/StarRating';
 import Pagination from '../components/Pagination';
@@ -19,7 +21,9 @@ const s = {
   priceInput: { padding: '9px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, width: 90 },
   resetBtn:   { padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', background: '#f5f5f5', cursor: 'pointer', fontSize: 13 },
   grid:       { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 },
-  card:       { background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 8px #0001', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent' },
+  card:       { background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 8px #0001', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent', position: 'relative' },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  favoriteBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28 },
   name:       { fontWeight: 700, fontSize: 16, marginBottom: 4 },
   farmer:     { fontSize: 12, color: '#888', marginBottom: 8 },
   desc:       { fontSize: 13, color: '#555', marginBottom: 12, minHeight: 36 },
@@ -27,23 +31,6 @@ const s = {
   qty:        { fontSize: 12, color: '#888', marginTop: 4 },
   badge:      { display: 'inline-block', fontSize: 11, background: '#d8f3dc', color: '#2d6a4f', borderRadius: 4, padding: '2px 7px', marginBottom: 8 },
   empty:      { textAlign: 'center', padding: 60, color: '#888' },
-  page: { maxWidth: 1100, margin: '0 auto', padding: 24 },
-  title: { fontSize: 24, fontWeight: 700, color: '#2d6a4f', marginBottom: 8 },
-  sub: { color: '#666', marginBottom: 20, fontSize: 15 },
-  filters: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24, alignItems: 'center' },
-  input: { padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14 },
-  select: { padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, background: '#fff' },
-  priceRow: { display: 'flex', gap: 6, alignItems: 'center' },
-  resetBtn: { padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', background: '#f5f5f5', cursor: 'pointer', fontSize: 13 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 20 },
-  card: { background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 8px #0001', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent' },
-  name: { fontWeight: 700, fontSize: 16, marginBottom: 4 },
-  farmer: { fontSize: 12, color: '#888', marginBottom: 8 },
-  desc: { fontSize: 13, color: '#555', marginBottom: 12, minHeight: 36 },
-  price: { fontWeight: 700, color: '#2d6a4f', fontSize: 18 },
-  qty: { fontSize: 12, color: '#888', marginTop: 4 },
-  badge: { display: 'inline-block', fontSize: 11, background: '#d8f3dc', color: '#2d6a4f', borderRadius: 4, padding: '2px 7px', marginBottom: 8 },
-  empty: { textAlign: 'center', padding: 60, color: '#888' },
 };
 
 const EMPTY_FILTERS = { search: '', category: '', minPrice: '', maxPrice: '', seller: '', available: 'true' };
@@ -56,6 +43,8 @@ export default function Marketplace() {
   const [page, setPage]             = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { isFavorited, toggleFavorite } = useFavorites();
   const { usd } = useXlmRate();
   const searchDebounce = useRef(null);
 
@@ -183,10 +172,26 @@ export default function Marketplace() {
             <div key={p.id} style={s.card} onClick={() => navigate(`/product/${p.id}`)}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              {p.image_url
-                ? <img src={p.image_url} alt={p.name} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }} />
-                : <div style={{ fontSize: 32, marginBottom: 8 }}>🥬</div>
-              }
+              <div style={s.cardHeader}>
+                <div style={{ flex: 1 }}>
+                  {p.image_url
+                    ? <img src={p.image_url} alt={p.name} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }} />
+                    : <div style={{ fontSize: 32, marginBottom: 8 }}>🥬</div>
+                  }
+                </div>
+                {user && user.role === 'buyer' && (
+                  <button
+                    style={s.favoriteBtn}
+                    onClick={e => {
+                      e.stopPropagation();
+                      toggleFavorite(p.id).catch(() => {});
+                    }}
+                    title={isFavorited(p.id) ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    {isFavorited(p.id) ? '❤️' : '🤍'}
+                  </button>
+                )}
+              </div>
               {p.category && p.category !== 'other' && <div style={s.badge}>{p.category}</div>}
               <div style={s.name}>{p.name}</div>
               <div

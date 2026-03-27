@@ -71,6 +71,7 @@ router.use('/api/v1/products', require('./products'));
 router.use('/api/v1/orders',   require('./orders'));
 router.use('/api/v1/wallet',   require('./wallet'));
 router.use('/api/v1/farmers',  require('./farmers'));
+router.use('/api/v1/favorites', require('./favorites'));
 
 // Non-versioned routes (used by frontend)
 router.use('/api/auth',      require('./auth'));
@@ -79,30 +80,9 @@ router.use('/api/orders',    require('./orders'));
 router.use('/api/wallet',    require('./wallet'));
 router.use('/api/analytics', require('./analytics'));
 router.use('/api/admin',     require('./admin'));
-
-router.use('/api/v1',          require('./reviews'));
-
-router.use('/api/v1/rates',  require('./rates'));
+router.use('/api/farmers',   require('./farmers'));
+router.use('/api/favorites', require('./favorites'));
 router.use('/api/rates',     require('./rates'));
-
-router.get('/api/v1/health', (_, res) => res.json({ status: 'ok', version: 'v1' }));
-
-// Non-versioned routes (used by frontend)
-router.use('/api/auth',      require('./auth'));
-router.use('/api/products',  require('./products'));
-router.use('/api/orders',    require('./orders'));
-router.use('/api/wallet',    require('./wallet'));
-router.use('/api/analytics', require('./analytics'));
-// Unversioned routes under /api
-router.use('/api/auth',     require('./auth'));
-router.use('/api/products', require('./products'));
-router.use('/api/orders',   require('./orders'));
-router.use('/api/wallet',   require('./wallet'));
-router.use('/api/farmers',  require('./farmers'));
-
-router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
-router.use('/api',          require('./reviews'));
-
-router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+router.use('/api',           require('./reviews'));
 
 module.exports = router;

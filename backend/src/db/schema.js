@@ -151,6 +151,23 @@ try {
   }
 } catch {}
 
+// Favorites table
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      buyer_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(buyer_id, product_id),
+      FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    );
+  `);
+} catch (err) {
+  console.error('[DB] Failed to create favorites table:', err.message);
+}
+
 // FTS5 virtual table for full-text product search
 try {
   db.exec(`
