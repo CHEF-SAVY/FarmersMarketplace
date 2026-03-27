@@ -52,6 +52,15 @@ const schemas = {
     body('quantity').isInt({ gt: 0 }).withMessage('quantity must be a positive integer'),
     handle,
   ],
+  farmerProfile: [
+    body('bio').optional().isString().isLength({ max: 500 }).withMessage('bio must be 500 characters or fewer').trim(),
+    body('location').optional().isString().isLength({ max: 100 }).withMessage('location must be 100 characters or fewer').trim(),
+    body('avatar_url').optional({ nullable: true }).custom(v => {
+      if (v === null || v === '') return true;
+      if (!/^\/uploads\/[a-f0-9]+\.(jpg|jpeg|png|webp)$/i.test(v))
+        throw new Error('avatar_url must be a valid upload path');
+      return true;
+    }),
   review: [
     body('order_id').isInt({ gt: 0 }).withMessage('order_id must be a positive integer'),
     body('rating').isInt({ min: 1, max: 5 }).withMessage('rating must be an integer between 1 and 5'),

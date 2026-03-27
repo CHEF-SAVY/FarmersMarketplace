@@ -187,7 +187,12 @@ export default function Marketplace() {
               }
               {p.category && p.category !== 'other' && <div style={s.badge}>{p.category}</div>}
               <div style={s.name}>{p.name}</div>
-              <div style={s.farmer}>by {p.farmer_name}</div>
+              <div
+                style={{ ...s.farmer, cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={e => { e.stopPropagation(); navigate(`/farmer/${p.farmer_id}`); }}
+              >
+                by {p.farmer_name}
+              </div>
               <div style={s.desc}>{p.description || 'Fresh from the farm'}</div>
               <div style={s.price}>{p.price} XLM <span style={{ fontSize: 13, fontWeight: 400 }}>/ {p.unit}</span></div>
               <div style={s.qty}>{p.quantity} {p.unit} available</div>

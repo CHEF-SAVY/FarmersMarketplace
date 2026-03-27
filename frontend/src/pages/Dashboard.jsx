@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE_MB = 5;
@@ -38,6 +39,7 @@ const s = {
 const EMPTY_FORM = { name: '', description: '', price: '', quantity: '', unit: 'kg', category: 'other' };
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [msg, setMsg] = useState(null);
@@ -47,11 +49,19 @@ export default function Dashboard() {
   // image state
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [imageUrl, setImageUrl] = useState(null); // confirmed server URL after upload
+  const [imageUrl, setImageUrl] = useState(null);
   const [imageErr, setImageErr] = useState('');
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
+
+  // profile state
+  const [profile, setProfile]       = useState({ bio: '', location: '', avatar_url: '' });
+  const [profileMsg, setProfileMsg] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
 
   async function load() {
     try {
@@ -64,7 +74,19 @@ export default function Dashboard() {
     } catch {}
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Load current profile
+    if (user?.id) {
+      api.getFarmer(user.id)
+        .then(res => {
+          const d = res.data;
+          setProfile({ bio: d.bio || '', location: d.location || '', avatar_url: d.avatar_url || '' });
+          if (d.avatar_url) setAvatarPreview(d.avatar_url);
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   function validateAndSetImage(file) {
     setImageErr('');
@@ -100,6 +122,38 @@ export default function Dashboard() {
     setPreviewUrl(null);
     setImageUrl(null);
     setImageErr('');
+  }
+
+  async function handleProfileSave(e) {
+    e.preventDefault();
+    setProfileMsg(null);
+    let finalAvatarUrl = profile.avatar_url;
+
+    if (avatarFile) {
+      setAvatarUploading(true);
+      try {
+        const res = await api.uploadAvatar(avatarFile);
+        finalAvatarUrl = res.imageUrl;
+        setAvatarFile(null);
+      } catch (err) {
+        setAvatarUploading(false);
+        setProfileMsg({ type: 'err', text: `Avatar upload failed: ${err.message}` });
+        return;
+      }
+      setAvatarUploading(false);
+    }
+
+    try {
+      const res = await api.updateFarmerProfile({
+        bio: profile.bio || undefined,
+        location: profile.location || undefined,
+        avatar_url: finalAvatarUrl || undefined,
+      });
+      setProfile({ bio: res.data.bio || '', location: res.data.location || '', avatar_url: res.data.avatar_url || '' });
+      setProfileMsg({ type: 'ok', text: 'Profile updated' });
+    } catch (err) {
+      setProfileMsg({ type: 'err', text: err.message });
+    }
   }
 
   async function handleAdd(e) {
@@ -248,6 +302,59 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+      {/* Profile edit */}
+      <div style={{ ...s.card, marginTop: 24 }}>
+        <h3 style={{ marginBottom: 16, color: '#333' }}>My Farmer Profile</h3>
+        {profileMsg && (
+          <div style={{ ...s.msg, background: profileMsg.type === 'ok' ? '#d8f3dc' : '#fee', color: profileMsg.type === 'ok' ? '#2d6a4f' : '#c0392b' }}>
+            {profileMsg.text}
+          </div>
+        )}
+        <form onSubmit={handleProfileSave}>
+          <label style={s.label}>Avatar</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+            {avatarPreview
+              ? <img src={avatarPreview} alt="Avatar" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }} />
+              : <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#d8f3dc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🌾</div>
+            }
+            <div>
+              <button type="button" style={{ ...s.btn, fontSize: 13, padding: '7px 14px' }} onClick={() => avatarInputRef.current?.click()}>
+                {avatarUploading ? 'Uploading...' : 'Change Avatar'}
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) { setAvatarFile(file); setAvatarPreview(URL.createObjectURL(file)); }
+                  e.target.value = '';
+                }}
+              />
+            </div>
+          </div>
+
+          <label style={s.label}>Location</label>
+          <input
+            style={s.input}
+            placeholder="e.g. Nairobi, Kenya"
+            value={profile.location}
+            onChange={e => setProfile(p => ({ ...p, location: e.target.value }))}
+            maxLength={100}
+          />
+
+          <label style={s.label}>Bio</label>
+          <textarea
+            style={s.textarea}
+            placeholder="Tell buyers about your farm..."
+            value={profile.bio}
+            onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
+            maxLength={500}
+          />
+
+          <button style={s.btn} type="submit" disabled={avatarUploading}>Save Profile</button>
+        </form>
 
       {/* Order management panel */}
       <div style={{ ...s.card, marginTop: 24 }}>

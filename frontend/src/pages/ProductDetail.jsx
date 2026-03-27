@@ -149,6 +149,15 @@ export default function ProductDetail() {
           : <div style={{ fontSize: 48, marginBottom: 12 }}>🥬</div>
         }
         <div style={s.name}>{product.name}</div>
+        <div style={s.farmer}>
+          Sold by{' '}
+          <span
+            style={{ cursor: 'pointer', textDecoration: 'underline', color: '#2d6a4f' }}
+            onClick={() => navigate(`/farmer/${product.farmer_id}`)}
+          >
+            {product.farmer_name}
+          </span>
+        </div>
         <div style={s.farmer}>Sold by {product.farmer_name}</div>
 
         {/* Average rating */}

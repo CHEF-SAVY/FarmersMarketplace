@@ -66,6 +66,9 @@ try {
 // Migrate existing DB: add columns if missing
 try { db.exec(`ALTER TABLE products ADD COLUMN category TEXT DEFAULT 'other'`); } catch {}
 try { db.exec(`ALTER TABLE products ADD COLUMN image_url TEXT`); } catch {}
+try { db.exec(`ALTER TABLE users ADD COLUMN bio TEXT`); } catch {}
+try { db.exec(`ALTER TABLE users ADD COLUMN location TEXT`); } catch {}
+try { db.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`); } catch {}
 try { db.exec(`ALTER TABLE products ADD COLUMN low_stock_threshold INTEGER DEFAULT 5`); } catch {}
 try { db.exec(`ALTER TABLE products ADD COLUMN low_stock_alerted INTEGER DEFAULT 0`); } catch {}
 
