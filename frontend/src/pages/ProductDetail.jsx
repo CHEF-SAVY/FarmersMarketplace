@@ -47,6 +47,8 @@ export default function ProductDetail() {
   const [loading, setLoading]   = useState(false);
   const [result, setResult]     = useState(null);
   const [error, setError]       = useState('');
+  const [alertSet, setAlertSet] = useState(false);
+  const [alertLoading, setAlertLoading] = useState(false);
 
   // Review form state
   const [paidOrders, setPaidOrders]     = useState([]);
@@ -71,6 +73,11 @@ export default function ProductDetail() {
     loadReviews();
   }, [id, loadReviews]);
 
+  useEffect(() => {
+    if (user?.role !== 'buyer') return;
+    api.getMyAlert(id).then(res => setAlertSet(res.subscribed)).catch(() => {});
+  }, [id, user]);
+
   // Load buyer's paid orders for this product so they can pick which to review
   useEffect(() => {
     if (user?.role !== 'buyer') return;
@@ -88,6 +95,23 @@ export default function ProductDetail() {
   if (!product) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
 
   const total = (product.price * qty).toFixed(2);
+
+  async function handleAlert() {
+    setAlertLoading(true);
+    try {
+      if (alertSet) {
+        await api.removeStockAlert(id);
+        setAlertSet(false);
+      } else {
+        await api.setStockAlert(id);
+        setAlertSet(true);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setAlertLoading(false);
+    }
+  }
 
   async function handleBuy() {
     if (!user) return navigate('/login');
@@ -191,9 +215,24 @@ export default function ProductDetail() {
         <div style={s.total}>Total: <strong>{total} XLM</strong></div>
         {error && <div style={s.err}>{error}</div>}
 
-        <button style={s.btn} onClick={handleBuy} disabled={loading}>
-          {loading ? 'Processing payment...' : `Buy Now · ${total} XLM`}
-        </button>
+        {product.quantity === 0 ? (
+          <div>
+            <div style={{ color: '#c0392b', fontWeight: 600, marginBottom: 12 }}>⚠️ Out of stock</div>
+            {user?.role === 'buyer' && (
+              <button
+                style={{ ...s.btn, background: alertSet ? '#888' : '#2d6a4f' }}
+                onClick={handleAlert}
+                disabled={alertLoading}
+              >
+                {alertLoading ? '...' : alertSet ? '🔔 Alert Set — Click to Unsubscribe' : '🔔 Notify Me When Back in Stock'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <button style={s.btn} onClick={handleBuy} disabled={loading}>
+            {loading ? 'Processing payment...' : `Buy Now · ${total} XLM`}
+          </button>
+        )}
       </div>
 
       {/* Reviews section */}

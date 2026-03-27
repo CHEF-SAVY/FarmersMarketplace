@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { body, validationResult } = require('express-validator');
 
 const WEAK_PASSWORDS = new Set([
   'password', 'password1', 'Password1', 'Password1!',
@@ -22,6 +23,14 @@ function validate(schema) {
     req.body = result.data; // use coerced/parsed values
     next();
   };
+}
+
+function handle(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: errors.array()[0].msg, code: 'validation_error' });
+  }
+  next();
 }
 
 const schemas = {
@@ -110,6 +119,8 @@ const schemas = {
         throw new Error('avatar_url must be a valid upload path');
       return true;
     }),
+    handle,
+  ],
   review: [
     body('order_id').isInt({ gt: 0 }).withMessage('order_id must be a positive integer'),
     body('rating').isInt({ min: 1, max: 5 }).withMessage('rating must be an integer between 1 and 5'),

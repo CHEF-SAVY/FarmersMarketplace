@@ -3,8 +3,7 @@ const db = require('../db/schema');
 const auth = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { sendPayment, getBalance } = require('../utils/stellar');
-const { sendOrderEmails, sendStatusUpdateEmail } = require('../utils/mailer');
-const { sendOrderEmails, sendLowStockAlert } = require('../utils/mailer');
+const { sendOrderEmails, sendStatusUpdateEmail, sendLowStockAlert } = require('../utils/mailer');
 const { err } = require('../middleware/error');
 
 // POST /api/orders - buyer places + pays for an order

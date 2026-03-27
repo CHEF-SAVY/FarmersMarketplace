@@ -2,8 +2,7 @@ const router = require('express').Router();
 const db = require('../db/schema');
 const auth = require('../middleware/auth');
 const validate = require('../middleware/validate');
-const { getBalance, getTransactions, fundTestnetAccount, sendPayment } = require('../utils/stellar');
-const { getBalance, getTransactions, fundTestnetAccount, isTestnet } = require('../utils/stellar');
+const { getBalance, getTransactions, fundTestnetAccount, sendPayment, isTestnet } = require('../utils/stellar');
 const { err } = require('../middleware/error');
 
 // GET /api/wallet

@@ -22,7 +22,7 @@ const generalLimiter = rateLimit({
 
 const orderLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: parseInt(process.env.RATE_LIMIT_ORDER_MAX || '10'),
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many orders, slow down', code: 'rate_limited' },
