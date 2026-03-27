@@ -36,6 +36,7 @@ const s = {
   row:       { display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, padding: '16px 20px', borderBottom: '1px solid #f0f0f0', alignItems: 'start' },
   name:      { fontWeight: 600, fontSize: 15, marginBottom: 4, color: '#222' },
   meta:      { fontSize: 13, color: '#666', marginBottom: 2 },
+  address:   { fontSize: 12, color: '#888', marginTop: 4, fontStyle: 'italic' },
   hash:      { fontSize: 11, color: '#aaa', fontFamily: 'monospace', marginTop: 6, wordBreak: 'break-all' },
   badge:     { fontSize: 12, padding: '4px 12px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap' },
   empty:     { padding: '48px 20px', textAlign: 'center', color: '#aaa', fontSize: 15 },
@@ -159,6 +160,12 @@ export default function Orders() {
                 <div>
                   <div style={s.name}>{o.product_name}</div>
                   <div style={s.meta}>{o.quantity} {o.unit} &nbsp;·&nbsp; from {o.farmer_name}</div>
+                  {o.address_label && (
+                    <div style={s.address}>
+                      📍 {o.address_label}: {o.address_street}, {o.address_city}, {o.address_country}
+                      {o.address_postal_code ? ` ${o.address_postal_code}` : ''}
+                    </div>
+                  )}
                   <div style={s.meta}>
                     {new Date(o.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     {' '}<span style={{ color: '#bbb' }}>{new Date(o.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>

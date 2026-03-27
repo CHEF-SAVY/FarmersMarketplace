@@ -116,6 +116,8 @@ router.use('/api/farmers',  require('./farmers'));
 
 router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 router.use('/api',          require('./reviews'));
+router.use('/api/addresses', require('./addresses'));
+router.use('/api/products/bulk', require('./bulkUpload'))\nrouter.use('/api/messages', require('./messages'))\nrouter.use('/api/messages', require('./messages'))
 
 router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 

@@ -13,6 +13,7 @@ router.post('/', auth, validate.order, async (req, res) => {
   if (req.user.role !== 'buyer')
     return err(res, 403, 'Only buyers can place orders', 'forbidden');
 
+  const { product_id, address_id } = req.body;
   const idempotencyKey = req.headers['x-idempotency-key'];
   const cached = getCachedResponse(idempotencyKey);
   if (cached) {
@@ -24,6 +25,12 @@ router.post('/', auth, validate.order, async (req, res) => {
   const quantity = parseInt(req.body.quantity, 10);
   if (!product_id || isNaN(quantity) || quantity < 1)
     return err(res, 400, 'product_id and a positive quantity are required', 'validation_error');
+
+  // Validate address if provided
+  if (address_id) {
+    const address = db.prepare('SELECT * FROM addresses WHERE id = ? AND user_id = ?').get(address_id, req.user.id);
+    if (!address) return err(res, 400, 'Invalid address_id', 'validation_error');
+  }
 
   const product = db.prepare(`
     SELECT p.*, u.stellar_public_key as farmer_wallet
@@ -55,8 +62,8 @@ router.post('/', auth, validate.order, async (req, res) => {
     if (deducted.changes === 0) throw new Error('Insufficient stock');
 
     const order = db.prepare(
-      'INSERT INTO orders (buyer_id, product_id, quantity, total_price, status) VALUES (?, ?, ?, ?, ?)'
-    ).run(buyerId, productId, qty, total, 'pending');
+      'INSERT INTO orders (buyer_id, product_id, quantity, total_price, status, address_id) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(buyerId, productId, qty, total, 'pending', address_id || null);
 
     return order.lastInsertRowid;
   });
@@ -152,10 +159,13 @@ router.get('/', auth, (req, res) => {
   ).get(...params).count;
 
   const data = db.prepare(
-    `SELECT o.*, p.name as product_name, p.unit, u.name as farmer_name
+    `SELECT o.*, p.name as product_name, p.unit, u.name as farmer_name,
+            a.label as address_label, a.street as address_street, a.city as address_city,
+            a.country as address_country, a.postal_code as address_postal_code
      FROM orders o
      JOIN products p ON o.product_id = p.id
      JOIN users u ON p.farmer_id = u.id
+     LEFT JOIN addresses a ON o.address_id = a.id
      ${where}
      ORDER BY o.created_at DESC LIMIT ? OFFSET ?`
   ).all(...params, limit, offset);
@@ -201,10 +211,13 @@ router.get('/sales', auth, (req, res) => {
   ).get(req.user.id).count;
 
   const data = db.prepare(
-    `SELECT o.*, p.name as product_name, u.name as buyer_name
+    `SELECT o.*, p.name as product_name, u.name as buyer_name,
+            a.label as address_label, a.street as address_street, a.city as address_city,
+            a.country as address_country, a.postal_code as address_postal_code
      FROM orders o
      JOIN products p ON o.product_id = p.id
      JOIN users u ON o.buyer_id = u.id
+     LEFT JOIN addresses a ON o.address_id = a.id
      WHERE p.farmer_id = ?
      ORDER BY o.created_at DESC LIMIT ? OFFSET ?`
   ).all(req.user.id, limit, offset);

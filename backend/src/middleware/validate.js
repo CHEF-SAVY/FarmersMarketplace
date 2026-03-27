@@ -65,6 +65,7 @@ const schemas = {
   order: validate(z.object({
     product_id: z.coerce.number().int().positive('product_id must be a positive integer'),
     quantity: z.coerce.number().int().positive('quantity must be a positive integer'),
+    address_id: z.coerce.number().int().positive().optional(),
   })),
 
   sendXLM: validate(z.object({
