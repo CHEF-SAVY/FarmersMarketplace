@@ -93,6 +93,41 @@ Runs on http://localhost:3000
 | POST   | /api/wallet/fund                         | auth   | Fund via Friendbot (testnet)                                       |
 | GET    | /api/contracts/:contractId/state?prefix= | auth   | View Soroban contract storage entries (JSON: key, val, durability) |
 
+## Database Migrations
+
+Schema changes are managed through versioned SQL migration files in `backend/migrations/`.
+
+### Running migrations
+
+```bash
+cd backend
+npm run migrate           # apply all pending migrations
+npm run migrate:rollback  # revert the last applied migration
+```
+
+Migrations run automatically on app startup — no manual step needed for development.
+
+### How it works
+
+- Migration files: `backend/migrations/NNN_description.sql`
+- Rollback files:  `backend/migrations/NNN_description.undo.sql` (optional)
+- Applied migrations are tracked in a `migrations` table in the database
+- Running `migrate` twice is safe — already-applied migrations are skipped
+
+### Creating a new migration
+
+```bash
+# Up migration
+echo "ALTER TABLE products ADD COLUMN featured INTEGER DEFAULT 0;" \
+  > backend/migrations/002_add_featured.sql
+
+# Rollback (optional)
+echo "ALTER TABLE products DROP COLUMN IF EXISTS featured;" \
+  > backend/migrations/002_add_featured.undo.sql
+
+npm run migrate
+```
+
 ## PostgreSQL Setup
 
 The backend supports both SQLite (local dev) and PostgreSQL (production), controlled by the `DATABASE_URL` environment variable.

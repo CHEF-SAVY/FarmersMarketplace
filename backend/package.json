@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest --forceExit"
+    "test": "jest --forceExit",
+    "migrate": "node migrate.js",
+    "migrate:rollback": "node migrate.js rollback"
   },
   "jest": {
     "testEnvironment": "node",
