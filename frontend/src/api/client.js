@@ -345,4 +345,7 @@ export const api = {
 
   // Platform fee
   getFeePreview: (amount) => request(`/orders/fee-preview?amount=${amount}`),
+  // Account alerts
+  getAlerts: () => request('/wallet/alerts'),
+  markAlertRead: (id) => request(`/wallet/alerts/${id}/read`, { method: 'PATCH' }),
 };

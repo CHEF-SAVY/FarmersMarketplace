@@ -11,9 +11,21 @@ import Spinner from '../components/Spinner';
 import { useTranslation } from 'react-i18next';
 
 const s = {
-  page: { maxWidth: 640, margin: '40px auto', padding: 24 },
-  card: { background: '#fff', borderRadius: 12, padding: 32, boxShadow: '0 1px 8px #0001', marginBottom: 24 },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 16 },
+  page: { maxWidth: 640, margin: "40px auto", padding: 16 },
+  card: {
+    background: "#fff",
+    borderRadius: 12,
+    padding: 24,
+    boxShadow: "0 1px 8px #0001",
+    marginBottom: 24,
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    marginBottom: 16,
+  },
   headerContent: { flex: 1 },
   favoriteBtn: { background: 'none', border: 'none', fontSize: 32, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, flexShrink: 0 },
   name:       { fontSize: 28, fontWeight: 700, color: '#2d6a4f', marginBottom: 4 },
@@ -22,8 +34,8 @@ const s = {
   price:      { fontSize: 24, fontWeight: 700, color: '#2d6a4f', marginBottom: 8 },
   row:        { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 },
   input:      { width: 80, padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 16, textAlign: 'center' },
-  btn:        { background: '#2d6a4f', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 28px', cursor: 'pointer', fontWeight: 600, fontSize: 16 },
-  btnSm:      { background: '#2d6a4f', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 14 },
+  btn:        { background: '#2d6a4f', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 28px', cursor: 'pointer', fontWeight: 600, fontSize: 16, minHeight: 44 },
+  btnSm:      { background: '#2d6a4f', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 14, minHeight: 44 },
   total:      { background: '#f0faf4', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 15 },
   err:        { color: '#c0392b', fontSize: 14, marginTop: 8 },
   success:    { background: '#d8f3dc', borderRadius: 8, padding: 16, color: '#2d6a4f' },
