@@ -173,6 +173,8 @@ try { db.exec(`ALTER TABLE products ADD COLUMN low_stock_alerted INTEGER DEFAULT
     `ALTER TABLE products ADD COLUMN low_stock_threshold INTEGER DEFAULT 5`,
     `ALTER TABLE products ADD COLUMN low_stock_alerted INTEGER DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1`,
+    `ALTER TABLE users ADD COLUMN verification_status TEXT DEFAULT 'unverified'`,
+    `ALTER TABLE users ADD COLUMN verification_docs TEXT`,
     `ALTER TABLE users ADD COLUMN bio TEXT`,
     `ALTER TABLE users ADD COLUMN location TEXT`,
     `ALTER TABLE users ADD COLUMN avatar_url TEXT`,

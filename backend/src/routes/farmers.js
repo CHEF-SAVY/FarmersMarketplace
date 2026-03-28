@@ -5,6 +5,7 @@ const validate = require('../middleware/validate');
 const { err } = require('../middleware/error');
 const { sanitizeText } = require('../utils/sanitize');
 
+const PUBLIC_FIELDS = 'u.id, u.name, u.bio, u.location, u.avatar_url, u.verification_status, u.created_at';
 const PUBLIC_FIELDS = 'u.id, u.name, u.bio, u.location, u.avatar_url, u.created_at, u.latitude, u.longitude, u.farm_address';
 
 // GET /api/farmers/:id
@@ -65,6 +66,28 @@ router.patch('/me', auth, validate.farmerProfile, async (req, res) => {
 
   const { rows } = await db.query(`SELECT ${PUBLIC_FIELDS}, federation_name FROM users u WHERE u.id = $1`, [req.user.id]);
   res.json({ success: true, data: rows[0] });
+});
+
+// POST /api/farmers/verify - Submit verification documents
+router.post('/verify', auth, async (req, res) => {
+  if (req.user.role !== 'farmer') {
+    return err(res, 403, 'Only farmers can submit verification', 'forbidden');
+  }
+
+  const { document_urls } = req.body;
+  if (!document_urls || !Array.isArray(document_urls) || document_urls.length === 0) {
+    return err(res, 400, 'document_urls array is required', 'validation_error');
+  }
+
+  // Store as JSON string
+  const docsJson = JSON.stringify(document_urls);
+
+  await db.query(
+    'UPDATE users SET verification_status = $1, verification_docs = $2 WHERE id = $3',
+    ['pending', docsJson, req.user.id]
+  );
+
+  res.json({ success: true, message: 'Verification submitted for review' });
 });
 
 module.exports = router;
