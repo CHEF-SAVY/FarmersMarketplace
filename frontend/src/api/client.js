@@ -300,6 +300,10 @@ export const api = {
   getTransactions: ()          => request('/wallet/transactions'),
   fundWallet:     ()           => request('/wallet/fund', { method: 'POST' }),
   sendXLM:        (body)       => request('/wallet/send', { method: 'POST', body }),
+  addTrustline:   (body)       => request('/wallet/trustline', { method: 'POST', body }),
+  removeTrustline:(body)       => request('/wallet/trustline', { method: 'DELETE', body }),
+  getWalletAssets: ()          => request('/wallet/assets'),
+  getPathEstimate: (params)    => request(`/wallet/path-estimate${toQs(params)}`),
   // Returns the SSE URL with the token embedded (EventSource can't set headers)
   getWalletStreamUrl: ()       => `/api/wallet/stream?token=${encodeURIComponent(accessToken || '')}`,
   searchProducts: (q) => request(`/products/search?q=${encodeURIComponent(q)}`),
@@ -346,4 +350,22 @@ export const api = {
   // Product import (AgroAPI / JSON)
   importProductsPreview: (products) => request('/products/import', { method: 'POST', body: { products } }),
   importProductsConfirm: (products) => request('/products/import/confirm', { method: 'POST', body: { products } }),
+  // Seed phrase backup & recovery
+  getSeedPhrase: (password) => request('/auth/seed-phrase', { method: 'POST', body: { password } }),
+  recoverAccount: (body) => request('/auth/recover', { method: 'POST', body }),
+  // Availability calendar
+  getCalendar: (productId) => request(`/products/${productId}/calendar`),
+  setCalendarWeek: (productId, body) => request(`/products/${productId}/calendar`, { method: 'POST', body }),
+  // Cooperatives & multi-sig
+  createCooperative: (body) => request('/cooperatives', { method: 'POST', body }),
+  getCooperatives: () => request('/cooperatives'),
+  setupMultisig: (id, body) => request(`/cooperatives/${id}/multisig-setup`, { method: 'POST', body }),
+  initiateCoopTx: (id, body) => request(`/cooperatives/${id}/transactions`, { method: 'POST', body }),
+  signPendingTx: (txId) => request(`/cooperatives/transactions/${txId}/sign`, { method: 'POST' }),
+  getPendingTxs: (coopId) => request(`/cooperatives/${coopId}/pending`),
+  // Platform fee
+  getFeePreview: (amount) => request(`/orders/fee-preview?amount=${amount}`),
+  // Account alerts
+  getAlerts: () => request('/wallet/alerts'),
+  markAlertRead: (id) => request(`/wallet/alerts/${id}/read`, { method: 'PATCH' }),
 };
