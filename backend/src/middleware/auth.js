@@ -6,7 +6,7 @@ module.exports = (req, res, next) => {
   if (!token) return err(res, 401, 'No token provided', 'missing_token');
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
   } catch {
     err(res, 401, 'Invalid token', 'invalid_token');
