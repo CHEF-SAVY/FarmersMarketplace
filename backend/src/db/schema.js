@@ -344,6 +344,17 @@ if (USE_POSTGRES) {
     `CREATE TABLE IF NOT EXISTS stock_alerts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
+    );
+  `);
+} catch (err) {
+  console.error('[DB] Failed to create idempotency_keys table:', err.message);
+}
+// stock_alerts table
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS stock_alerts (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER NOT NULL,
       product_id INTEGER NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(user_id, product_id),
@@ -393,3 +404,61 @@ if (USE_POSTGRES) {
   sqlite.isPostgres = false;
   module.exports = sqlite;
 }
+// Subscriptions table
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      buyer_id      INTEGER NOT NULL,
+      product_id    INTEGER NOT NULL,
+      quantity      INTEGER NOT NULL,
+      frequency     TEXT NOT NULL CHECK(frequency IN ('weekly', 'biweekly', 'monthly')),
+      next_order_at DATETIME NOT NULL,
+      active        INTEGER NOT NULL DEFAULT 1,
+      status        TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'paused', 'cancelled')),
+      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (buyer_id)   REFERENCES users(id)    ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    );
+  `);
+} catch (err) {
+  console.error('[DB] Failed to create subscriptions table:', err.message);
+// Bundles tables
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bundles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      farmer_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      price REAL NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (farmer_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS bundle_items (
+      bundle_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL,
+      PRIMARY KEY (bundle_id, product_id),
+      FOREIGN KEY (bundle_id) REFERENCES bundles(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS bundle_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      buyer_id INTEGER NOT NULL,
+      bundle_id INTEGER NOT NULL,
+      total_price REAL NOT NULL,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'failed')),
+      stellar_tx_hash TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (buyer_id) REFERENCES users(id),
+      FOREIGN KEY (bundle_id) REFERENCES bundles(id)
+    );
+  `);
+} catch (err) {
+  console.error('[DB] Failed to create bundles tables:', err.message);
+}
+
+module.exports = db;

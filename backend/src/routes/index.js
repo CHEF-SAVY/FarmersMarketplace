@@ -76,6 +76,34 @@ router.use('/api/v1',           require('./reviews'));
 
 // QR code endpoint
 router.use('/api/products', require('./market'));
+// Non-versioned routes
+router.use('/api/auth',          require('./auth'));
+router.use('/api/products',      require('./products'));
+router.use('/api/orders',        require('./orders'));
+router.use('/api/subscriptions', require('./subscriptions').router);
+router.use('/api/wallet',        require('./wallet'));
+router.use('/api/analytics',     require('./analytics'));
+router.use('/api/admin',         require('./admin'));
+router.use('/api/farmers',       require('./farmers'));
+router.use('/api/rates',         require('./rates'));
+router.use('/api',               require('./reviews'));
+router.use('/api/favorites',     require('./favorites'));
+router.use('/api/auth',      require('./auth'));
+router.use('/api/products',  require('./products'));
+router.use('/api/orders',    require('./orders'));
+router.use('/api/bundles',   require('./bundles'));
+router.use('/api/wallet',    require('./wallet'));
+router.use('/api/analytics', require('./analytics'));
+router.use('/api/admin',     require('./admin'));
+router.use('/api/farmers',   require('./farmers'));
+router.use('/api/rates',     require('./rates'));
+router.use('/api',           require('./reviews'));
+router.use('/api/favorites', require('./favorites'));
+router.use('/api/rates',     require('./rates'));
+router.use('/api',           require('./reviews'));
+
+// QR code endpoint (mounted under products so /:id/qr resolves correctly)
+router.use('/api/products',  require('./market'));
 
 // Stellar federation
 router.use('/federation', require('./federation'));
@@ -89,5 +117,39 @@ router.get('/.well-known/stellar.toml', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.send(`FEDERATION_SERVER="${backendUrl}/federation"\nNETWORK_PASSPHRASE="${passphrase}"\n`);
 });
+
+// Legacy routes
+router.use('/api/auth',     require('./auth'));
+router.use('/api/products', require('./products'));
+router.use('/api/orders',   require('./orders'));
+router.use('/api/wallet',   require('./wallet'));
+router.use('/api/contracts', require('./contracts'));
+
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+router.get('/api/v1/health', (_, res) => res.json({ status: 'ok', version: 'v1' }));
+
+module.exports = router;
+
+// Non-versioned routes (used by frontend)
+router.use('/api/auth',      require('./auth'));
+router.use('/api/products',  require('./products'));
+router.use('/api/orders',    require('./orders'));
+router.use('/api/wallet',    require('./wallet'));
+router.use('/api/analytics', require('./analytics'));
+// Unversioned routes under /api
+router.use('/api/auth',     require('./auth'));
+router.use('/api/products', require('./products'));
+router.use('/api/orders',   require('./orders'));
+router.use('/api/wallet',   require('./wallet'));
+router.use('/api/farmers',  require('./farmers'));
+
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+router.use('/api',          require('./reviews'));
+router.use('/api/addresses', require('./addresses'));
+router.use('/api/products/bulk', require('./bulkUpload'));
+router.use('/api/messages', require('./messages'));
+
+router.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
 module.exports = router;
