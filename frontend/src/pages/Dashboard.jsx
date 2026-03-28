@@ -15,16 +15,16 @@ const STATUS_ICON = { pending: '⏳', paid: '✅', processing: '⚙️', shipped
 const STATUS_COLOR = { paid: '#2d6a4f', pending: '#856404', processing: '#004085', shipped: '#0c5460', delivered: '#155724', failed: '#c0392b' };
 
 const s = {
-  page: { maxWidth: 900, margin: '0 auto', padding: 24 },
+  page: { maxWidth: 900, margin: '0 auto', padding: 16 },
   title: { fontSize: 24, fontWeight: 700, color: '#2d6a4f', marginBottom: 24 },
-  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 },
   card: { background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 8px #0001' },
   label: { display: 'block', fontSize: 13, marginBottom: 4, color: '#555' },
-  input: { width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, marginBottom: 4, boxSizing: 'border-box' },
-  inputErr: { width: '100%', padding: '9px 12px', border: '1px solid #c0392b', borderRadius: 8, fontSize: 14, marginBottom: 4, boxSizing: 'border-box' },
+  input: { width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 16, marginBottom: 4, boxSizing: 'border-box', minHeight: 44 },
+  inputErr: { width: '100%', padding: '9px 12px', border: '1px solid #c0392b', borderRadius: 8, fontSize: 16, marginBottom: 4, boxSizing: 'border-box', minHeight: 44 },
   fieldErr: { color: '#c0392b', fontSize: 12, marginBottom: 8 },
   textarea: { width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, marginBottom: 4, minHeight: 80, resize: 'vertical', boxSizing: 'border-box' },
-  btn: { background: '#2d6a4f', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600 },
+  btn: { background: '#2d6a4f', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, minHeight: 44 },
   product: { borderBottom: '1px solid #eee', padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   del: { background: '#fee', color: '#c0392b', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 },
   msg: { padding: '10px 14px', borderRadius: 8, marginBottom: 12, fontSize: 14 },
