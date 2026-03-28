@@ -1,18 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { validateProduct } from '../utils/validation';
-import { getErrorMessage } from '../utils/errorMessages';
-import { useTranslation } from 'react-i18next';
-
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_SIZE_MB = 5;
-const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-const FARMER_STATUSES = ['processing', 'shipped', 'delivered'];
-const MAX_IMAGES = 5;
-
-const STATUS_ICON = { pending: '⏳', paid: '✅', processing: '⚙️', shipped: '🚚', delivered: '📦', failed: '❌' };
-const STATUS_COLOR = { paid: '#2d6a4f', pending: '#856404', processing: '#004085', shipped: '#0c5460', delivered: '#155724', failed: '#c0392b' };
 
 const s = {
   page: { maxWidth: 900, margin: '0 auto', padding: 16 },
@@ -20,6 +7,9 @@ const s = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 },
   card: { background: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 8px #0001' },
   label: { display: 'block', fontSize: 13, marginBottom: 4, color: '#555' },
+  input: { width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, marginBottom: 12 },
+  textarea: { width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, marginBottom: 12, minHeight: 80, resize: 'vertical' },
+  btn: { background: '#2d6a4f', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600 },
   input: { width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 16, marginBottom: 4, boxSizing: 'border-box', minHeight: 44 },
   inputErr: { width: '100%', padding: '9px 12px', border: '1px solid #c0392b', borderRadius: 8, fontSize: 16, marginBottom: 4, boxSizing: 'border-box', minHeight: 44 },
   fieldErr: { color: '#c0392b', fontSize: 12, marginBottom: 8 },
@@ -28,31 +18,6 @@ const s = {
   product: { borderBottom: '1px solid #eee', padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   del: { background: '#fee', color: '#c0392b', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 },
   msg: { padding: '10px 14px', borderRadius: 8, marginBottom: 12, fontSize: 14 },
-  address: { fontSize: 12, color: '#888', marginTop: 4, fontStyle: 'italic' },
-  // image upload
-  uploadZone: {
-    border: '2px dashed #b7e4c7', borderRadius: 10, padding: '18px 12px',
-    textAlign: 'center', cursor: 'pointer', marginBottom: 12,
-    background: '#f8fdf9', color: '#555', fontSize: 13, transition: 'border-color 0.2s',
-  },
-  uploadZoneActive: { borderColor: '#2d6a4f', background: '#edf7f0' },
-  preview: { width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 8, marginBottom: 8, display: 'block' },
-  removeImg: { background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: 12, marginBottom: 12 },
-  imgErr: { color: '#c0392b', fontSize: 12, marginBottom: 8 },
-  fieldErr: { color: '#c0392b', fontSize: 12, marginBottom: 8 },
-  uploading: { color: '#888', fontSize: 12, marginBottom: 8 },
-  csvBtn: { background: '#218c74', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, marginRight: 8 },
-  csvInput: { display: 'none' },
-  csvResult: { padding: '10px 14px', borderRadius: 8, marginBottom: 12, fontSize: 14 },
-  productThumb: { width: 36, height: 36, objectFit: 'cover', borderRadius: 6, marginRight: 10, verticalAlign: 'middle' },
-  // gallery manager
-  galleryPanel: { background: '#f8fdf9', border: '1px solid #b7e4c7', borderRadius: 10, padding: 14, marginTop: 10 },
-  galleryThumb: { width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '2px solid #ddd', display: 'block' },
-  galleryThumbFirst: { border: '2px solid #2d6a4f' },
-  galleryItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'relative' },
-  galleryGrid: { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 },
-  imgDelBtn: { background: '#fee', color: '#c0392b', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', fontSize: 11 },
-  arrowBtn: { background: 'none', border: '1px solid #ddd', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', fontSize: 12 },
 };
 
 const EMPTY_FORM = {
@@ -77,12 +42,11 @@ const EMPTY_FORM = {
 import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [restockVals, setRestockVals] = useState({});
+  const [form, setForm] = useState({ name: '', description: '', price: '', quantity: '', unit: 'kg', category: 'other' });
   const [msg, setMsg] = useState(null);
+  const [auctionForm, setAuctionForm] = useState({ product_id: '', start_price: '', ends_at: '' });
+  const [auctionMsg, setAuctionMsg] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [sales, setSales] = useState([]);
   const [salesMsg, setSalesMsg] = useState({});
@@ -270,15 +234,10 @@ export default function Dashboard() {
     }
   }
   async function load() {
-  async function openGallery(productId) {
-    setGalleryProductId(productId);
-    setGalleryErr('');
-    try {
-      const res = await api.getProductImages(productId);
-      setGalleryImages(res.data ?? []);
-    } catch { setGalleryImages([]); }
+    try { setProducts(await api.getMyProducts()); } catch { /* ignore */ }
   }
 
+  useEffect(() => { load(); }, []);
   function closeGallery() {
     setGalleryProductId(null);
     setGalleryImages([]);
@@ -463,53 +422,10 @@ export default function Dashboard() {
   async function handleAdd(e) {
     e.preventDefault();
     setMsg(null);
-    setFormErrors({});
-
-    // Validate price and quantity
-    const errors = {};
-    const price = parseFloat(form.price);
-    const quantity = parseInt(form.quantity, 10);
-
-    if (!form.name || !form.name.trim()) {
-      errors.name = 'Product name is required';
-    }
-    if (!form.price || isNaN(price) || price <= 0) {
-      errors.price = 'Price must be a positive number';
-    }
-    if (!form.quantity || isNaN(quantity) || quantity <= 0) {
-      errors.quantity = 'Quantity must be a positive integer';
-    }
-    if (form.is_preorder && !form.preorder_delivery_date) {
-      errors.preorder_delivery_date = 'Delivery date is required for pre-order products';
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
-    // Client-side validation
-    const errs = validateProduct(form);
-    if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
-    setFormErrors({});
-
-    // Upload image first if one is selected but not yet uploaded
-    let finalImageUrl = imageUrl;
-    if (imageFile && !imageUrl) {
-      setUploading(true);
-      try {
-        const res = await api.uploadProductImage(imageFile);
-        finalImageUrl = res.imageUrl;
-        setImageUrl(res.imageUrl);
-      } catch (err) {
-        setUploading(false);
-        setMsg({ type: 'err', text: `Image upload failed: ${getErrorMessage(err)}` });
-        return;
-      }
-      setUploading(false);
-    }
-
     try {
+      await api.createProduct({ ...form, price: parseFloat(form.price), quantity: parseInt(form.quantity) });
+      setMsg({ type: 'ok', text: 'Product listed successfully' });
+      setForm({ name: '', description: '', price: '', quantity: '', unit: 'kg', category: 'other' });
       // Prepare nutrition data
       const nutritionData = {};
       if (form.nutrition.calories) nutritionData.calories = parseFloat(form.nutrition.calories);
@@ -533,189 +449,54 @@ export default function Dashboard() {
       removeImage();
       load();
     } catch (err) {
-      setMsg({ type: 'err', text: getErrorMessage(err) });
+      setMsg({ type: 'err', text: err.message });
     }
   }
 
   async function handleDelete(id) {
-    if (!confirm(t('dashboard.removeProductConfirm'))) return;
-    try { await api.deleteProduct(id); load(); } catch {}
+    if (!confirm('Remove this product?')) return;
+    try { await api.deleteProduct(id); load(); } catch { /* ignore */ }
   }
 
-  async function handleRestock(id) {
-    const qty = parseInt(restockVals[id], 10);
-    if (isNaN(qty) || qty <= 0) return alert(t('dashboard.restockInvalid'));
+  async function handleCreateAuction(e) {
+    e.preventDefault();
+    setAuctionMsg(null);
     try {
-      await api.restockProduct(id, qty);
-      setRestockVals({ ...restockVals, [id]: '' });
-      load();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-      alert(getErrorMessage(err));
-  async function handleStatusUpdate(orderId, status) {
-    try {
-      await api.updateOrderStatus(orderId, status);
-      setSalesMsg(prev => ({ ...prev, [orderId]: { type: 'ok', text: `Updated to ${status}` } }));
-      load();
-    } catch (e) {
-      setSalesMsg(prev => ({ ...prev, [orderId]: { type: 'err', text: e.message } }));
-    }
-  }
-
-  if (loading) return <Spinner />;
-  
-  if (error) {
-    return (
-      <div style={s.page}>
-        <div style={{ ...s.msg, background: '#fee', color: '#c0392b', marginBottom: 16 }}>
-          <strong>{t('dashboard.errorLoading')}</strong> {error}
-        </div>
-      </div>
-    );
-  async function handleCsvUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.name.endsWith('.csv')) {
-      setCsvResult({ type: 'err', text: 'Please upload a .csv file' });
-      return;
-    }
-    setCsvFile(file);
-    setCsvUploading(true);
-    setCsvResult(null);
-    try {
-      const res = await api.bulkUploadProducts(file);
-      setCsvResult({
-        type: 'ok',
-        text: `Upload complete: ${res.created} created, ${res.skipped} skipped, ${res.errors?.length || 0} errors`,
-        details: res.errors,
+      await api.createAuction({
+        product_id: parseInt(auctionForm.product_id),
+        start_price: parseFloat(auctionForm.start_price),
+        ends_at: new Date(auctionForm.ends_at).toISOString(),
       });
-      load();
+      setAuctionMsg({ type: 'ok', text: 'Auction created!' });
+      setAuctionForm({ product_id: '', start_price: '', ends_at: '' });
     } catch (err) {
-      setCsvResult({ type: 'err', text: err.message });
-    } finally {
-      setCsvUploading(false);
-      setCsvFile(null);
-      if (csvInputRef.current) csvInputRef.current.value = '';
+      setAuctionMsg({ type: 'err', text: err.message });
     }
-  }
-
-  function downloadCsvTemplate() {
-    const csv = 'name,description,price,quantity,unit,category\nOrganic Tomatoes,Fresh organic tomatoes,2.50,100,kg,vegetables\nFree Range Eggs,Farm fresh eggs,5.00,50,dozen,dairy\n';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'product-template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   return (
-<div style={s.page}>
-      <div style={s.title}>{user?.role === 'admin' ? t('dashboard.adminTitle') : t('dashboard.title')}</div>
-      {user.role === 'admin' && (
-        <div style={{ ...s.card, marginBottom: 24 }}> 
-          <h3 style={{ marginBottom: 16, color: '#333' }}>{t('dashboard.contractStateViewer')}</h3>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
-            <div style={{ flex: 1, minWidth: 300 }}>
-              <label style={s.label}>{t('dashboard.contractId')}</label>
-              <input
-                style={s.input}
-                value={contractId}
-                onChange={(e) => setContractId(e.target.value)}
-                placeholder="e.g. CB64..."
-              />
-            </div>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={s.label}>{t('dashboard.keyPrefix')}</label>
-              <input
-                style={s.input}
-                value={prefix}
-                onChange={(e) => setPrefix(e.target.value)}
-                placeholder="e.g. ADMIN_ or hex"
-              />
-            </div>
-            <button style={s.btn} onClick={loadContractState} disabled={loadingState}>
-              {loadingState ? t('dashboard.loading') : t('dashboard.loadState')}
-            </button>
-          </div>
-          {stateErr && <div style={{ ...s.msg, background: '#fee', color: '#c0392b', marginTop: 12 }}>{stateErr}</div>}
-          {stateEntries.length > 0 && (
-            <div style={{ marginTop: 16, maxHeight: 400, overflow: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr style={{ background: '#f8f9fa' }}>
-                    <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #eee' }}>{t('dashboard.key')}</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #eee' }}>{t('dashboard.value')}</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #eee' }}>{t('dashboard.durability')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stateEntries.map((entry, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{entry.key}</td>
-                      <td style={{ padding: '8px 12px', fontFamily: 'monospace', maxWidth: 300, wordBreak: 'break-all' }}>{entry.val}</td>
-                      <td style={{ padding: '8px 12px' }}>{entry.durability}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+    <div style={s.page}>
+      <div style={s.title}>🌾 Farmer Dashboard</div>
       <div style={s.grid}>
-        {user.role === 'farmer' && (
-          <div style={s.card}>
-            <h3 style={{ marginBottom: 16, color: '#333' }}>{t('dashboard.addProduct')}</h3>
-          {msg && (
-            <div style={{ ...s.msg, background: msg.type === 'ok' ? '#d8f3dc' : '#fee', color: msg.type === 'ok' ? '#2d6a4f' : '#c0392b' }}>
-              {msg.text}
-            </div>
-          )}
+        <div style={s.card}>
+          <h3 style={{ marginBottom: 16, color: '#333' }}>Add New Product</h3>
+          {msg && <div style={{ ...s.msg, background: msg.type === 'ok' ? '#d8f3dc' : '#fee', color: msg.type === 'ok' ? '#2d6a4f' : '#c0392b' }}>{msg.text}</div>}
           <form onSubmit={handleAdd}>
-            {[['name', t('dashboard.productName')], ['price', t('dashboard.price')], ['quantity', t('dashboard.quantity')], ['unit', t('dashboard.unit')]].map(([key, label]) => (
+            {[['name', 'Product Name'], ['price', 'Price (XLM)'], ['quantity', 'Quantity'], ['unit', 'Unit (kg, bunch, etc.)']].map(([key, label]) => (
               <div key={key}>
                 <label style={s.label}>{label}</label>
-                <input
-                  style={{ ...s.input, borderColor: formErrors[key] ? '#c0392b' : '#ddd' }}
-                  value={form[key]}
-                  onChange={e => {
-                    setForm({ ...form, [key]: e.target.value });
-                    if (formErrors[key]) setFormErrors({ ...formErrors, [key]: undefined });
-                  style={formErrors[key] ? s.inputErr : s.input}
-                  value={form[key]}
-                  type={key === 'price' || key === 'quantity' ? 'number' : 'text'}
-                  min={key === 'price' || key === 'quantity' ? '0' : undefined}
-                  step={key === 'price' ? 'any' : undefined}
-                  onChange={e => {
-                    setForm({ ...form, [key]: e.target.value });
-                    if (formErrors[key]) setFormErrors(fe => ({ ...fe, [key]: '' }));
-                  }}
-                  required={key !== 'unit'}
-                  type={key === 'price' || key === 'quantity' ? 'number' : 'text'}
-                  step={key === 'price' ? 'any' : undefined}
-                  type={key === 'price' || key === 'quantity' ? 'number' : undefined}
-                  step={key === 'price' ? '0.01' : key === 'quantity' ? '1' : undefined}
-                  min={key === 'price' || key === 'quantity' ? '0' : undefined}
-                />
-                {formErrors[key] && <div style={{ ...s.imgErr, marginTop: -8, marginBottom: 4 }}>{formErrors[key]}</div>}
-                {formErrors[key] && <div style={s.fieldErr} role="alert">{formErrors[key]}</div>}
+                <input style={s.input} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} required={key !== 'unit'} />
               </div>
             ))}
-
-            <label style={s.label}>{t('dashboard.description')}</label>
+            <label style={s.label}>Description</label>
             <textarea style={s.textarea} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-
-            <label style={s.label}>{t('dashboard.category')}</label>
+            <label style={s.label}>Category</label>
             <select style={s.input} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
               {['vegetables', 'fruits', 'grains', 'dairy', 'herbs', 'other'].map(c => (
                 <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
               ))}
             </select>
+            <button style={s.btn} type="submit">List Product</button>
 
             <details style={{ marginTop: 16 }}>
               <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#2d6a4f', marginBottom: 8 }}>
@@ -918,9 +699,15 @@ export default function Dashboard() {
         </div>
 
         <div style={s.card}>
-          <h3 style={{ marginBottom: 16, color: '#333' }}>{t('dashboard.myListings', { count: products.length })}</h3>
-          {products.length === 0 && <p style={{ color: '#888', fontSize: 14 }}>{t('dashboard.noProducts')}</p>}
+          <h3 style={{ marginBottom: 16, color: '#333' }}>My Listings ({products.length})</h3>
+          {products.length === 0 && <p style={{ color: '#888', fontSize: 14 }}>No products yet. Add your first listing.</p>}
           {products.map(p => (
+            <div key={p.id} style={s.product}>
+              <div>
+                <div style={{ fontWeight: 600 }}>{p.name}</div>
+                <div style={{ fontSize: 13, color: '#666' }}>{p.price} XLM · {p.quantity} {p.unit}</div>
+              </div>
+              <button style={s.del} onClick={() => handleDelete(p.id)}>Remove</button>
             <div key={p.id} style={{ ...s.product, flexDirection: 'column', alignItems: 'stretch' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -1109,170 +896,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Bundle Listings */}
-      {user.role === 'farmer' && (
-        <div style={{ ...s.card, marginTop: 24 }}>
-          <h3 style={{ marginBottom: 16, color: '#333' }}>🎁 Bundle Deals</h3>
-          {bundleMsg && (
-            <div style={{ ...s.msg, background: bundleMsg.type === 'ok' ? '#d8f3dc' : '#fee', color: bundleMsg.type === 'ok' ? '#2d6a4f' : '#c0392b' }}>
-              {bundleMsg.text}
-            </div>
-          )}
-          <form onSubmit={async e => {
-            e.preventDefault();
-            setBundleMsg(null);
-            const items = bundleForm.items.filter(i => i.product_id && i.quantity > 0).map(i => ({ product_id: parseInt(i.product_id), quantity: parseInt(i.quantity) }));
-            if (!bundleForm.name.trim()) return setBundleMsg({ type: 'err', text: 'Bundle name is required' });
-            if (items.length === 0) return setBundleMsg({ type: 'err', text: 'Add at least one product item' });
-            try {
-              await api.createBundle({ name: bundleForm.name, description: bundleForm.description, price: parseFloat(bundleForm.price), items });
-              setBundleMsg({ type: 'ok', text: 'Bundle created!' });
-              setBundleForm({ name: '', description: '', price: '', items: [{ product_id: '', quantity: 1 }] });
-              load();
-            } catch (err) { setBundleMsg({ type: 'err', text: err.message }); }
-          }}>
-            <label style={s.label}>Bundle Name</label>
-            <input style={s.input} value={bundleForm.name} onChange={e => setBundleForm(f => ({ ...f, name: e.target.value }))} required />
-            <label style={s.label}>Description (optional)</label>
-            <textarea style={s.textarea} value={bundleForm.description} onChange={e => setBundleForm(f => ({ ...f, description: e.target.value }))} />
-            <label style={s.label}>Bundle Price (XLM)</label>
-            <input style={s.input} type="number" min="0" step="any" value={bundleForm.price} onChange={e => setBundleForm(f => ({ ...f, price: e.target.value }))} required />
-            <label style={{ ...s.label, marginTop: 8 }}>Items</label>
-            {bundleForm.items.map((item, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
-                <select
-                  style={{ ...s.input, flex: 2, marginBottom: 0 }}
-                  value={item.product_id}
-                  onChange={e => setBundleForm(f => { const items = [...f.items]; items[idx] = { ...items[idx], product_id: e.target.value }; return { ...f, items }; })}
-                >
-                  <option value="">Select product…</option>
-                  {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.quantity} {p.unit})</option>)}
-                </select>
-                <input
-                  type="number" min="1" placeholder="Qty"
-                  style={{ ...s.input, width: 70, marginBottom: 0 }}
-                  value={item.quantity}
-                  onChange={e => setBundleForm(f => { const items = [...f.items]; items[idx] = { ...items[idx], quantity: parseInt(e.target.value) || 1 }; return { ...f, items }; })}
-                />
-                {bundleForm.items.length > 1 && (
-                  <button type="button" style={s.del} onClick={() => setBundleForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }))}>✕</button>
-                )}
-              </div>
-            ))}
-            <button type="button" style={{ ...s.btn, background: '#555', fontSize: 12, padding: '5px 12px', marginBottom: 12 }}
-              onClick={() => setBundleForm(f => ({ ...f, items: [...f.items, { product_id: '', quantity: 1 }] }))}>
-              + Add Item
-            </button>
-            <br />
-            <button style={s.btn} type="submit">Create Bundle</button>
-          </form>
-
-          {bundles.length > 0 && (
-            <div style={{ marginTop: 20 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8, color: '#555' }}>My Bundles ({bundles.length})</div>
-              {bundles.map(b => (
-                <div key={b.id} style={{ ...s.product, flexDirection: 'column', alignItems: 'stretch' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{b.name}</div>
-                      <div style={{ fontSize: 13, color: '#666' }}>{b.price} XLM · {b.items?.length} item(s)</div>
-                    </div>
-                    <button style={s.del} onClick={async () => {
-                      if (!confirm('Remove this bundle?')) return;
-                      try { await api.deleteBundle(b.id); load(); } catch {}
-                    }}>Remove</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      )}
-
-      {/* Coupon Management */}
-      <div style={{ ...s.card, marginTop: 24 }}>
-        <h3 style={{ marginBottom: 16, color: '#333' }}>🏷️ Coupon Codes</h3>
-        {couponMsg && (
-          <div style={{ ...s.msg, background: couponMsg.type === 'ok' ? '#d8f3dc' : '#fee', color: couponMsg.type === 'ok' ? '#2d6a4f' : '#c0392b', marginBottom: 12 }}>
-            {couponMsg.text}
-          </div>
-        )}
-        <form style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }} onSubmit={async e => {
-          e.preventDefault();
-          setCouponMsg(null);
-          try {
-            await api.createCoupon({
-              code: couponForm.code.trim(),
-              discount_type: couponForm.discount_type,
-              discount_value: parseFloat(couponForm.discount_value),
-              max_uses: couponForm.max_uses ? parseInt(couponForm.max_uses) : undefined,
-              expires_at: couponForm.expires_at || undefined,
-            });
-            setCouponMsg({ type: 'ok', text: 'Coupon created!' });
-            setCouponForm({ code: '', discount_type: 'percent', discount_value: '', max_uses: '', expires_at: '' });
-            const res = await api.getMyCoupons();
-            setCoupons(res.data ?? []);
-          } catch (err) { setCouponMsg({ type: 'err', text: err.message }); }
-        }}>
-          <div>
-            <label style={s.label}>Code</label>
-            <input style={s.input} placeholder="e.g. SUMMER10" value={couponForm.code} onChange={e => setCouponForm(f => ({ ...f, code: e.target.value }))} required />
-          </div>
-          <div>
-            <label style={s.label}>Type</label>
-            <select style={s.input} value={couponForm.discount_type} onChange={e => setCouponForm(f => ({ ...f, discount_type: e.target.value }))}>
-              <option value="percent">Percent (%)</option>
-              <option value="fixed">Fixed (XLM)</option>
-            </select>
-          </div>
-          <div>
-            <label style={s.label}>Value</label>
-            <input style={s.input} type="number" min="0.01" step="any" placeholder={couponForm.discount_type === 'percent' ? '10' : '1.5'} value={couponForm.discount_value} onChange={e => setCouponForm(f => ({ ...f, discount_value: e.target.value }))} required />
-          </div>
-          <div>
-            <label style={s.label}>Max Uses (optional)</label>
-            <input style={s.input} type="number" min="1" placeholder="Unlimited" value={couponForm.max_uses} onChange={e => setCouponForm(f => ({ ...f, max_uses: e.target.value }))} />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={s.label}>Expires At (optional)</label>
-            <input style={s.input} type="datetime-local" value={couponForm.expires_at} onChange={e => setCouponForm(f => ({ ...f, expires_at: e.target.value }))} />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <button style={s.btn} type="submit">Create Coupon</button>
-          </div>
+      <div style={{ ...s.card, marginTop: 24, maxWidth: 440 }}>
+        <h3 style={{ marginBottom: 16, color: '#333' }}>🔨 Create Auction</h3>
+        {auctionMsg && <div style={{ ...s.msg, background: auctionMsg.type === 'ok' ? '#d8f3dc' : '#fee', color: auctionMsg.type === 'ok' ? '#2d6a4f' : '#c0392b' }}>{auctionMsg.text}</div>}
+        <form onSubmit={handleCreateAuction}>
+          <label style={s.label}>Product</label>
+          <select style={s.input} value={auctionForm.product_id} onChange={e => setAuctionForm({ ...auctionForm, product_id: e.target.value })} required>
+            <option value="">Select a product</option>
+            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <label style={s.label}>Starting Price (XLM)</label>
+          <input style={s.input} type="number" min="0.01" step="0.01" value={auctionForm.start_price} onChange={e => setAuctionForm({ ...auctionForm, start_price: e.target.value })} required />
+          <label style={s.label}>Ends At</label>
+          <input style={s.input} type="datetime-local" value={auctionForm.ends_at} onChange={e => setAuctionForm({ ...auctionForm, ends_at: e.target.value })} required />
+          <button style={{ ...s.btn, background: '#e07b00' }} type="submit">Create Auction</button>
         </form>
-        {coupons.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                <th style={{ padding: '6px 8px' }}>Code</th>
-                <th style={{ padding: '6px 8px' }}>Discount</th>
-                <th style={{ padding: '6px 8px' }}>Uses</th>
-                <th style={{ padding: '6px 8px' }}>Expires</th>
-                <th style={{ padding: '6px 8px' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {coupons.map(c => (
-                <tr key={c.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '6px 8px', fontWeight: 600 }}>{c.code}</td>
-                  <td style={{ padding: '6px 8px' }}>{c.discount_type === 'percent' ? `${c.discount_value}%` : `${c.discount_value} XLM`}</td>
-                  <td style={{ padding: '6px 8px' }}>{c.used_count}{c.max_uses ? ` / ${c.max_uses}` : ''}</td>
-                  <td style={{ padding: '6px 8px' }}>{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '—'}</td>
-                  <td style={{ padding: '6px 8px' }}>
-                    <button style={s.del} onClick={async () => {
-                      if (!confirm('Delete this coupon?')) return;
-                      try { await api.deleteCoupon(c.id); setCoupons(cs => cs.filter(x => x.id !== c.id)); } catch {}
-                    }}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {coupons.length === 0 && <div style={{ color: '#aaa', fontSize: 13 }}>No coupons yet.</div>}
       </div>
 
       {/* CSV Bulk Upload */}

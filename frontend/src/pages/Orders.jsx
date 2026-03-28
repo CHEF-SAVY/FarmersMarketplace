@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../api/client';
-import Spinner from '../components/Spinner';
-import React, { useEffect, useState, useCallback } from 'react';
-import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import Spinner from '../components/Spinner';
 
 const ALL_STATUSES = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'failed'];
 const FILTER_TABS = ['all', ...ALL_STATUSES];
@@ -175,8 +173,9 @@ export default function Orders() {
             {visible.length === 0 ? (
               <div style={s.empty}>
                 {activeTab === 'all' ? 'No orders yet. Head to the marketplace to make a purchase.' : `No ${activeTab} orders.`}
-        ) : (
-          visible.map(o => {
+              </div>
+            ) : (
+              visible.map(o => {
             const st = STATUS_STYLE[o.status] || { bg: '#eee', color: '#333' };
             return (
               <div key={o.id} style={{ ...s.row, ...(hovered === o.id ? { background: '#fafafa' } : {}) }}
@@ -246,38 +245,8 @@ export default function Orders() {
                   <span style={s.price}>{parseFloat(o.total_price).toFixed(2)} XLM</span>
                 </div>
               </div>
-            ) : (
-              visible.map(o => {
-                const st = STATUS_STYLE[o.status] || { bg: '#eee', color: '#333' };
-                return (
-                  <div key={o.id} style={{ ...s.row, ...(hovered === o.id ? { background: '#fafafa' } : {}) }}
-                    onMouseEnter={() => setHovered(o.id)} onMouseLeave={() => setHovered(null)}>
-                    <div>
-                      <div style={s.name}>{o.product_name}</div>
-                      <div style={s.meta}>{o.quantity} {o.unit} &nbsp;·&nbsp; from {o.farmer_name}</div>
-                      <div style={s.meta}>
-                        {new Date(o.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                        {' '}<span style={{ color: '#bbb' }}>{new Date(o.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      {o.stellar_tx_hash && (
-                        <div style={s.hash}>
-                          TX:{' '}
-                          <a href={`https://stellar.expert/explorer/testnet/tx/${o.stellar_tx_hash}`} target="_blank" rel="noreferrer" style={{ color: '#2d6a4f' }}>
-                            {o.stellar_tx_hash}
-                          </a>
-                        </div>
-                      )}
-                      <StatusTimeline status={o.status} />
-                    </div>
-                    <div style={s.right}>
-                      <span style={{ ...s.badge, background: st.bg, color: st.color }}>
-                        {STATUS_ICON[o.status]} {o.status}
-                      </span>
-                      <span style={s.price}>{parseFloat(o.total_price).toFixed(2)} XLM</span>
-                    </div>
-                  </div>
-                );
-              })
+            );
+          })
             )}
           </div>
         </>

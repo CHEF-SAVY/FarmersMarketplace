@@ -32,7 +32,7 @@ export default function AddressBook() {
     try {
       const res = await api.getAddresses();
       setAddresses(res.data ?? []);
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   useEffect(() => { load(); }, []);

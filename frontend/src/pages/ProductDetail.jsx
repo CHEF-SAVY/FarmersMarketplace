@@ -198,6 +198,19 @@ export default function ProductDetail() {
   const subtotal = (unitPrice * qty).toFixed(2);
   const total = couponResult ? couponResult.final_total.toFixed(2) : subtotal;
 
+  async function handleAlert() {
+    setAlertLoading(true);
+    try {
+      if (alertSet) {
+        await api.deleteAlert(id);
+        setAlertSet(false);
+      } else {
+        await api.createAlert(id);
+        setAlertSet(true);
+      }
+    } catch { /* ignore */ }
+    setAlertLoading(false);
+  }
   // Fetch fee info whenever total changes
   const totalNum = parseFloat(total);
   React.useEffect(() => {

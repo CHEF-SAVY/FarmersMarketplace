@@ -79,6 +79,11 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
+        <FavoritesProvider>
+          <LoadingProvider>
+            <AppContent />
+          </LoadingProvider>
+        </FavoritesProvider>
         <LoadingProvider>
           <FavoritesProvider>
             <CompareProvider>

@@ -1,5 +1,24 @@
 const BASE = '/api';
 
+function getToken() {
+  return localStorage.getItem('token');
+}
+
+async function request(path, options = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+      ...options.headers,
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
 let accessToken = null;
 let loadingCallback = null;
 let logoutCallback = null;
@@ -170,9 +189,11 @@ function toQs(params) {
 export const api = {
   register: (body) => request('/auth/register', { method: 'POST', body }),
   login: (body) => request('/auth/login', { method: 'POST', body }),
-  logout: () => request('/auth/logout', { method: 'POST' }),
-  refresh: () => refreshAccessToken(),
 
+  getProducts: (filters = {}) => {
+    const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v !== '' && v != null)).toString();
+    return request(`/products${qs ? `?${qs}` : ''}`);
+  },
   getProducts: (filters = {}) => request(`/products${toQs(filters)}`),
   getCategories: () => request('/products/categories'),
   getProduct: (id) => request(`/products/${id}`),
@@ -353,16 +374,17 @@ export const api = {
   searchProducts: (q) => request(`/products/search?q=${encodeURIComponent(q)}`),
 
   placeOrder: (body) => request('/orders', { method: 'POST', body }),
-  getOrders: (params = {}) => request(`/orders${toQs(params)}`),
-  getSales: (params = {}) => request(`/orders/sales${toQs(params)}`),
-  updateOrderStatus: (id, status) => request(`/orders/${id}/status`, { method: 'PATCH', body: { status } }),
-
-  submitReview: (body) => request('/reviews', { method: 'POST', body }),
+  getOrders: () => request('/orders'),
+  getSales: () => request('/orders/sales'),
 
   getWallet: () => request('/wallet'),
   getTransactions: () => request('/wallet/transactions'),
   fundWallet: () => request('/wallet/fund', { method: 'POST' }),
 
+  getAuctions: () => request('/auctions'),
+  getAuction: (id) => request(`/auctions/${id}`),
+  createAuction: (body) => request('/auctions', { method: 'POST', body }),
+  placeBid: (id, body) => request(`/auctions/${id}/bid`, { method: 'POST', body }),
   getFarmer: (id) => request(`/farmers/${id}`),
   updateFarmerProfile: (body) => request('/farmers/me', { method: 'PATCH', body }),
 
