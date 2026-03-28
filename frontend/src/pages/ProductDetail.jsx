@@ -8,6 +8,7 @@ import { getErrorMessage } from '../utils/errorMessages';
 import { useXlmRate } from '../utils/useXlmRate';
 import StarRating from '../components/StarRating';
 import Spinner from '../components/Spinner';
+import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import { useTranslation } from 'react-i18next';
 
 const s = {
@@ -47,6 +48,7 @@ const s = {
   textarea:   { width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, resize: 'vertical', minHeight: 80, boxSizing: 'border-box' },
   label:      { fontSize: 13, color: '#555', marginBottom: 6, display: 'block' },
   empty:      { color: '#aaa', fontSize: 14, textAlign: 'center', padding: '24px 0' },
+  badge:      { display: 'inline-block', fontSize: 11, borderRadius: 4, padding: '2px 7px' },
   select:     { width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, marginBottom: 12 },
   galleryMain:   { width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 10, marginBottom: 10, display: 'block' },
   thumbRow:      { display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto' },
@@ -195,6 +197,23 @@ export default function ProductDetail() {
   };
 
   const unitPrice = getTierPrice(qty);
+    const isFlashSaleActive = Boolean(product.flash_sale_price && product.flash_sale_ends_at && new Date(product.flash_sale_ends_at).getTime() > Date.now());
+    const baseUnitPrice = getTierPrice(qty);
+    const unitPrice = isFlashSaleActive ? Number(product.flash_sale_price) : baseUnitPrice;
+          {isFlashSaleActive ? (
+            <>
+              <div style={s.price}>
+                {unitPrice.toFixed(2)} XLM / {product.unit}
+                <span style={{ marginLeft: 8, fontSize: 13, textDecoration: 'line-through', color: '#888' }}>
+                  {baseUnitPrice.toFixed(2)} XLM
+                </span>
+              </div>
+              <div style={{ ...s.badge, background: '#fee2e2', color: '#b42318', fontWeight: 700, marginBottom: 8 }}>Flash Sale</div>
+              <FlashSaleCountdown endsAt={product.flash_sale_ends_at} />
+            </>
+          ) : (
+            <div style={s.price}>{unitPrice.toFixed(2)} XLM / {product.unit}</div>
+          )}
   const subtotal = (unitPrice * qty).toFixed(2);
   const total = couponResult ? couponResult.final_total.toFixed(2) : subtotal;
 

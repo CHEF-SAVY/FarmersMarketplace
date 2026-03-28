@@ -390,6 +390,8 @@ export const api = {
 
   getXlmRate: () => request('/rates/xlm-usd'),
   getAnalytics: () => request('/analytics/farmer'),
+  setFlashSale: (id, body) => request(`/products/${id}/flash-sale`, { method: 'PATCH', body }),
+  cancelFlashSale: (id) => request(`/products/${id}/flash-sale`, { method: 'DELETE' }),
 
   // Admin
   adminGetUsers: (page = 1) => request(`/admin/users?page=${page}`),
