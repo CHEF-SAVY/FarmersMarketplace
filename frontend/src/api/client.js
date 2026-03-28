@@ -342,4 +342,8 @@ export const api = {
   cancelSubscription: (id) => request(`/subscriptions/${id}`, { method: 'DELETE' }),
   pauseSubscription: (id) => request(`/subscriptions/${id}/pause`, { method: 'PATCH' }),
   resumeSubscription: (id) => request(`/subscriptions/${id}/resume`, { method: 'PATCH' }),
+
+  // Product import (AgroAPI / JSON)
+  importProductsPreview: (products) => request('/products/import', { method: 'POST', body: { products } }),
+  importProductsConfirm: (products) => request('/products/import/confirm', { method: 'POST', body: { products } }),
 };
