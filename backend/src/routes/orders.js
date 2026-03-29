@@ -52,6 +52,18 @@ async function getTierPrice(productId, quantity) {
   const { rows: productRows } = await db.query('SELECT price FROM products WHERE id = $1', [productId]);
   return productRows[0].price;
 }
+
+function isFlashSaleActive(product) {
+  if (!product?.flash_sale_price || !product?.flash_sale_ends_at) return false;
+  return new Date(product.flash_sale_ends_at).getTime() > Date.now();
+}
+
+async function getEffectiveUnitPrice(product, productId, quantity) {
+  if (isFlashSaleActive(product)) {
+    return Number(product.flash_sale_price);
+  }
+  return getTierPrice(productId, quantity);
+}
 // GET /api/orders/fee-preview?amount=X — returns fee breakdown for a given amount
 router.get('/fee-preview', (req, res) => {
   const amount = parseFloat(req.query.amount);
@@ -163,7 +175,7 @@ router.post('/', auth, validate.order, async (req, res) => {
   );
   const buyer = buyerRows[0];
 
-  const unitPrice = await getTierPrice(product_id, quantity);
+  const unitPrice = await getEffectiveUnitPrice(product, product_id, quantity);
   const subtotal = unitPrice * quantity;
   let discount = 0;
   let appliedCoupon = null;
@@ -231,6 +243,7 @@ router.post('/', auth, validate.order, async (req, res) => {
   );
   const buyer = bRows[0];
 
+  const subtotal = (isFlashSaleActive(product) ? Number(product.flash_sale_price) : Number(product.price)) * quantity;
   const subtotal = product.pricing_type === 'weight'
     ? product.price * weight
     : product.price * quantity;
