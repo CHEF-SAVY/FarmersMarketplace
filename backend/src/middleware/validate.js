@@ -58,13 +58,16 @@ module.exports = {
     pricing_type: z.enum(['unit', 'weight']).optional(),
     min_weight: z.coerce.number().positive('min_weight must be positive').optional(),
     max_weight: z.coerce.number().positive('max_weight must be positive').optional(),
+    pricing_model: z.enum(['fixed', 'pwyw', 'donation']).default('fixed'),
+    min_price: z.coerce.number().nonnegative('min_price must be non-negative').optional(),
   }).refine(d => {
     if (d.pricing_type === 'weight') {
       if (!d.min_weight || !d.max_weight) return false;
       if (d.min_weight >= d.max_weight) return false;
     }
+    if (d.pricing_model === 'pwyw' && d.min_price === undefined) return false;
     return true;
-  }, { message: 'weight-based products require min_weight < max_weight' })),
+  }, { message: 'Incomplete pricing configuration: weight-based requires min<max, and PWYW requires min_price' })),
 
   order: validate(z.object({
     product_id: z.coerce.number().int().positive('product_id must be a positive integer'),
@@ -72,6 +75,12 @@ module.exports = {
     address_id: z.coerce.number().int().positive().optional(),
     use_soroban_escrow: z.coerce.boolean().optional(),
     weight: z.coerce.number().positive('weight must be a positive number').optional(),
+    custom_price: z.coerce.number().positive('custom_price must be a positive number').optional(),
+    coupon_code: z.string().optional(),
+    source_asset: z.object({
+      code: z.string(),
+      issuer: z.string().optional(),
+    }).optional(),
   })),
 
   updateOrderStatus: validate(z.object({
