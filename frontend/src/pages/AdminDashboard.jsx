@@ -29,6 +29,17 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [error, setError] = useState('');
+  const [contracts, setContracts] = useState([]);
+  const [contractForm, setContractForm] = useState({ contract_id: '', name: '', type: 'escrow', network: 'testnet' });
+  const [contractMsg, setContractMsg] = useState('');
+  const [contractFilter, setContractFilter] = useState({ network: '', type: '' });
+
+  // Contract state viewer
+  const [contractId, setContractId] = useState('');
+  const [contractPrefix, setContractPrefix] = useState('');
+  const [contractState, setContractState] = useState(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractError, setContractError] = useState('');
 
   async function loadStats() {
     try {
@@ -48,7 +59,35 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadStats();
     loadUsers(1);
+    loadContracts();
   }, []);
+
+  async function loadContracts(filters = contractFilter) {
+    try {
+      const params = new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString();
+      const res = await api.adminGetContracts(params ? `?${params}` : '');
+      setContracts(res.data ?? []);
+    } catch (e) { setContractMsg(e.message); }
+  }
+
+  async function handleRegisterContract(e) {
+    e.preventDefault();
+    setContractMsg('');
+    try {
+      await api.adminRegisterContract(contractForm);
+      setContractForm({ contract_id: '', name: '', type: 'escrow', network: 'testnet' });
+      setContractMsg('Contract registered.');
+      loadContracts();
+    } catch (err) { setContractMsg(err.message); }
+  }
+
+  async function handleDeregisterContract(id) {
+    if (!confirm('Deregister this contract?')) return;
+    try {
+      await api.adminDeregisterContract(id);
+      loadContracts();
+    } catch (e) { setContractMsg(e.message); }
+  }
 
   async function handleDeactivate(id, name) {
     if (!confirm(`Deactivate user "${name}"?`)) return;
@@ -56,6 +95,22 @@ export default function AdminDashboard() {
       await api.adminDeactivateUser(id);
       loadUsers(pagination.page);
     } catch (e) { setError(e.message); }
+  }
+
+  async function loadContractState(e) {
+    e.preventDefault();
+    if (!contractId.trim()) return;
+    setContractLoading(true);
+    setContractError('');
+    setContractState(null);
+    try {
+      const res = await api.getContractState(contractId.trim(), contractPrefix.trim() || undefined);
+      setContractState(res.data);
+    } catch (e) {
+      setContractError(e.message);
+    } finally {
+      setContractLoading(false);
+    }
   }
 
   return (
@@ -142,6 +197,62 @@ export default function AdminDashboard() {
             onClick={() => loadUsers(pagination.page + 1)}
           >Next →</button>
         </div>
+      </div>
+
+      {/* Soroban Contract State Viewer */}
+      <div style={{ ...s.card, marginTop: 32 }}>
+        <h3 style={{ marginBottom: 16, color: '#333' }}>🔍 Soroban Contract State</h3>
+        <form onSubmit={loadContractState} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+          <input
+            style={{ flex: '2 1 260px', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, fontFamily: 'monospace' }}
+            placeholder="Contract ID (base32 or hex)"
+            value={contractId}
+            onChange={e => setContractId(e.target.value)}
+            required
+          />
+          <input
+            style={{ flex: '1 1 140px', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14 }}
+            placeholder="Key prefix (optional)"
+            value={contractPrefix}
+            onChange={e => setContractPrefix(e.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={contractLoading}
+            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#2d6a4f', color: '#fff', fontWeight: 600, cursor: contractLoading ? 'not-allowed' : 'pointer' }}
+          >{contractLoading ? 'Loading…' : 'Fetch State'}</button>
+        </form>
+        {contractError && <div style={s.err}>{contractError}</div>}
+        {contractState && (
+          contractState.length === 0
+            ? <div style={{ color: '#888', fontSize: 14 }}>No storage entries found{contractPrefix ? ` matching prefix "${contractPrefix}"` : ''}.</div>
+            : (
+              <table style={s.table}>
+                <thead>
+                  <tr>
+                    <th style={s.th}>Key</th>
+                    <th style={s.th}>Value</th>
+                    <th style={s.th}>Durability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contractState.map((entry, i) => (
+                    <tr key={i}>
+                      <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>{String(entry.key)}</td>
+                      <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>{JSON.stringify(entry.val)}</td>
+                      <td style={{ ...s.td, fontSize: 12 }}>
+                        <span style={{ padding: '2px 8px', borderRadius: 12, fontWeight: 600, fontSize: 11,
+                          background: entry.durability === 'Temporary' ? '#fff3cd' : '#d8f3dc',
+                          color: entry.durability === 'Temporary' ? '#856404' : '#2d6a4f' }}>
+                          {entry.durability}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+        )}
       </div>
     </div>
   );

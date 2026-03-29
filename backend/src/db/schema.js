@@ -329,6 +329,19 @@ try {
     )`,
     `ALTER TABLE orders ADD COLUMN fee_bumped INTEGER DEFAULT 0`,
   ];  for (const sql of migrations) {
+    `CREATE TABLE IF NOT EXISTS contracts_registry (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      contract_id TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('escrow','token','other')),
+      network TEXT NOT NULL CHECK(network IN ('testnet','mainnet')),
+      deployed_by INTEGER REFERENCES users(id),
+      deployed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `ALTER TABLE products ADD COLUMN grade TEXT DEFAULT 'Ungraded' CHECK(grade IN ('A','B','C','Ungraded'))`,
+  ];
+
+  for (const sql of migrations) {
     try { sqlite.exec(sql); } catch {}
   }
 

@@ -54,6 +54,8 @@ export default function Dashboard() {
   const [videoUploadingByProduct, setVideoUploadingByProduct] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [flashSaleForm, setFlashSaleForm] = useState({ product_id: '', flash_sale_price: '', flash_sale_ends_at: '' });
+  const [flashSaleMsg, setFlashSaleMsg] = useState(null);
 
   // bundle state
   const [bundles, setBundles] = useState([]);
@@ -443,6 +445,9 @@ export default function Dashboard() {
         preorder_delivery_date: form.is_preorder ? form.preorder_delivery_date : null,
         image_url: finalImageUrl || undefined,
         nutrition: Object.keys(nutritionData).length > 0 ? nutritionData : undefined,
+        pricing_type: form.pricing_type || 'unit',
+        min_weight: form.pricing_type === 'weight' ? parseFloat(form.min_weight) : undefined,
+        max_weight: form.pricing_type === 'weight' ? parseFloat(form.max_weight) : undefined,
       });
       setMsg({ type: 'ok', text: t('dashboard.productListedOk') });
       setForm(EMPTY_FORM);
@@ -474,9 +479,67 @@ export default function Dashboard() {
     }
   }
 
+  async function handleSetFlashSale(e) {
+    e.preventDefault();
+    setFlashSaleMsg(null);
+    try {
+      const res = await api.setFlashSale(parseInt(flashSaleForm.product_id, 10), {
+        flash_sale_price: parseFloat(flashSaleForm.flash_sale_price),
+        flash_sale_ends_at: new Date(flashSaleForm.flash_sale_ends_at).toISOString(),
+      });
+      setFlashSaleMsg({ type: 'ok', text: `Flash sale set for product #${res.data.id}` });
+      await load();
+    } catch (e) {
+      setFlashSaleMsg({ type: 'err', text: getErrorMessage(e) });
+    }
+  }
+
+  async function handleCancelFlashSale(productId) {
+    try {
+      await api.cancelFlashSale(productId);
+      setFlashSaleMsg({ type: 'ok', text: `Flash sale canceled for product #${productId}` });
+      await load();
+    } catch (e) {
+      setFlashSaleMsg({ type: 'err', text: getErrorMessage(e) });
+    }
+  }
+
   return (
     <div style={s.page}>
       <div style={s.title}>🌾 Farmer Dashboard</div>
+      <div style={{ ...s.card, marginBottom: 24 }}>
+        <h3 style={{ marginBottom: 12, color: '#333' }}>Flash Sales</h3>
+        {flashSaleMsg && <div style={{ ...s.msg, background: flashSaleMsg.type === 'ok' ? '#d8f3dc' : '#fee', color: flashSaleMsg.type === 'ok' ? '#2d6a4f' : '#c0392b' }}>{flashSaleMsg.text}</div>}
+        <form onSubmit={handleSetFlashSale} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+          <div>
+            <label style={s.label}>Product</label>
+            <select style={s.input} value={flashSaleForm.product_id} onChange={(e) => setFlashSaleForm((f) => ({ ...f, product_id: e.target.value }))} required>
+              <option value="">Select product</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={s.label}>Flash Price (XLM)</label>
+            <input style={s.input} type="number" min="0" step="any" required value={flashSaleForm.flash_sale_price} onChange={(e) => setFlashSaleForm((f) => ({ ...f, flash_sale_price: e.target.value }))} />
+          </div>
+          <div>
+            <label style={s.label}>Ends At</label>
+            <input style={s.input} type="datetime-local" required value={flashSaleForm.flash_sale_ends_at} onChange={(e) => setFlashSaleForm((f) => ({ ...f, flash_sale_ends_at: e.target.value }))} />
+          </div>
+          <button type="submit" style={s.btn}>Set Flash Sale</button>
+        </form>
+
+        <div style={{ marginTop: 14 }}>
+          {products.filter((p) => p.flash_sale_price && p.flash_sale_ends_at).map((p) => (
+            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: 10, marginTop: 10 }}>
+              <div style={{ fontSize: 14 }}>
+                <strong>{p.name}</strong> - {p.flash_sale_price} XLM until {new Date(p.flash_sale_ends_at).toLocaleString()}
+              </div>
+              <button type="button" style={{ ...s.btn, background: '#c0392b' }} onClick={() => handleCancelFlashSale(p.id)}>Cancel</button>
+            </div>
+          ))}
+        </div>
+      </div>
       <div style={s.grid}>
         <div style={s.card}>
           <h3 style={{ marginBottom: 16, color: '#333' }}>Add New Product</h3>
@@ -496,6 +559,23 @@ export default function Dashboard() {
                 <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
               ))}
             </select>
+            <label style={s.label}>Pricing Type</label>
+            <select style={s.input} value={form.pricing_type || 'unit'} onChange={e => setForm({ ...form, pricing_type: e.target.value })}>
+              <option value="unit">Per unit / fixed quantity</option>
+              <option value="weight">By weight (price per kg/lb)</option>
+            </select>
+            {form.pricing_type === 'weight' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={s.label}>Min Weight ({form.unit || 'kg'})</label>
+                  <input style={s.input} type="number" min="0.001" step="any" value={form.min_weight || ''} onChange={e => setForm({ ...form, min_weight: e.target.value })} placeholder="e.g. 0.1" required />
+                </div>
+                <div>
+                  <label style={s.label}>Max Weight ({form.unit || 'kg'})</label>
+                  <input style={s.input} type="number" min="0.001" step="any" value={form.max_weight || ''} onChange={e => setForm({ ...form, max_weight: e.target.value })} placeholder="e.g. 10" required />
+                </div>
+              </div>
+            )}
             <button style={s.btn} type="submit">List Product</button>
 
             <details style={{ marginTop: 16 }}>
@@ -1085,6 +1165,50 @@ export default function Dashboard() {
                     )}
                     <div style={{ fontSize: 12, color: '#aaa' }}>{new Date(o.created_at).toLocaleDateString()}</div>
                     {m && <div style={{ fontSize: 12, color: m.type === 'ok' ? '#2d6a4f' : '#c0392b', marginTop: 4 }}>{m.text}</div>}
+                    {/* Return request section */}
+                    {o.return_status === 'pending' && (
+                      <div style={{ marginTop: 8, padding: '8px 12px', background: '#fff3cd', borderRadius: 8, fontSize: 13 }}>
+                        <div style={{ fontWeight: 600, color: '#856404', marginBottom: 4 }}>↩️ Return requested</div>
+                        <div style={{ color: '#555', marginBottom: 8 }}>{o.return_reason}</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            style={{ padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', background: '#2d6a4f', color: '#fff', fontWeight: 600, fontSize: 12 }}
+                            onClick={async () => {
+                              try {
+                                await api.approveReturn(o.id);
+                                setSalesMsg(prev => ({ ...prev, [o.id]: { type: 'ok', text: 'Return approved — refund sent' } }));
+                                load();
+                              } catch (e) {
+                                setSalesMsg(prev => ({ ...prev, [o.id]: { type: 'err', text: e.message } }));
+                              }
+                            }}
+                          >✅ Approve & Refund</button>
+                          <button
+                            style={{ padding: '5px 14px', borderRadius: 6, border: '1px solid #c0392b', cursor: 'pointer', background: '#fff', color: '#c0392b', fontWeight: 600, fontSize: 12 }}
+                            onClick={async () => {
+                              const reason = window.prompt('Reason for rejection (optional):');
+                              if (reason === null) return; // cancelled
+                              try {
+                                await api.rejectReturn(o.id, reason);
+                                setSalesMsg(prev => ({ ...prev, [o.id]: { type: 'ok', text: 'Return rejected' } }));
+                                load();
+                              } catch (e) {
+                                setSalesMsg(prev => ({ ...prev, [o.id]: { type: 'err', text: e.message } }));
+                              }
+                            }}
+                          >❌ Reject</button>
+                        </div>
+                      </div>
+                    )}
+                    {o.return_status && o.return_status !== 'pending' && (
+                      <div style={{ marginTop: 6, fontSize: 12 }}>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: 20, fontWeight: 600,
+                          background: o.return_status === 'approved' ? '#d8f3dc' : '#fee',
+                          color: o.return_status === 'approved' ? '#2d6a4f' : '#c0392b',
+                        }}>↩️ Return {o.return_status}</span>
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: STATUS_COLOR[o.status] || '#333' }}>

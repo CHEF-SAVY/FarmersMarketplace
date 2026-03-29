@@ -57,6 +57,57 @@ router.get('/stats', async (_req, res) => {
   });
 });
 
+// ── Contract Registry ──────────────────────────────────────────────────────
+
+// GET /api/admin/contracts
+router.get('/contracts', async (req, res) => {
+  const { network, type } = req.query;
+  const conditions = [];
+  const params = [];
+  if (network) { conditions.push(`network = $${params.length + 1}`); params.push(network); }
+  if (type)    { conditions.push(`type = $${params.length + 1}`);    params.push(type); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const { rows } = await db.query(
+    `SELECT cr.*, u.name as deployed_by_name FROM contracts_registry cr
+     LEFT JOIN users u ON cr.deployed_by = u.id ${where} ORDER BY cr.deployed_at DESC`,
+    params
+  );
+  res.json({ success: true, data: rows });
+});
+
+// POST /api/admin/contracts
+router.post('/contracts', async (req, res) => {
+  const { contract_id, name, type, network } = req.body;
+  if (!contract_id || !name || !type || !network) {
+    return res.status(400).json({ success: false, error: 'contract_id, name, type, and network are required' });
+  }
+  if (!['escrow', 'token', 'other'].includes(type)) {
+    return res.status(400).json({ success: false, error: 'type must be escrow, token, or other' });
+  }
+  if (!['testnet', 'mainnet'].includes(network)) {
+    return res.status(400).json({ success: false, error: 'network must be testnet or mainnet' });
+  }
+  try {
+    const { rows } = await db.query(
+      `INSERT INTO contracts_registry (contract_id, name, type, network, deployed_by) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [contract_id.trim(), name.trim(), type, network, req.user.id]
+    );
+    res.status(201).json({ success: true, data: rows[0] });
+  } catch (e) {
+    if (e.code === '23505' || (e.message && e.message.includes('UNIQUE'))) {
+      return res.status(409).json({ success: false, error: 'Contract ID already registered', code: 'duplicate' });
+    }
+    throw e;
+  }
+});
+
+// DELETE /api/admin/contracts/:id
+router.delete('/contracts/:id', async (req, res) => {
+  const { rowCount } = await db.query('DELETE FROM contracts_registry WHERE id = $1', [req.params.id]);
+  if (!rowCount) return res.status(404).json({ success: false, error: 'Contract not found' });
+  res.json({ success: true, message: 'Contract deregistered' });
+});
+
 // GET /api/admin/farmers/pending - Get farmers pending verification
 router.get('/farmers/pending', async (req, res) => {
   const { rows } = await db.query(
