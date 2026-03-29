@@ -79,6 +79,13 @@ router.use("/api/wallet/send", sendLimiter);
 // Routes
 router.use("/api/auth", require("./auth"));
 router.use("/api/products", require("./products"));
+router.use("/api/products", require("./productVideos"));
+router.use("/api/products/:id/calendar", require("./calendar"));
+router.use("/api/orders", require("./orderBudgetGuard"));
+router.use("/api/orders", require("./orders"));
+router.use("/api/waitlist", require("./waitlist"));
+router.use("/api/wallet", require("./alerts"));
+router.use("/api/wallet", require("./walletBudget"));
 router.use("/api/products", require("./productShare"));
 router.use("/api/products", require("./productVideos"));
 router.use("/api/products/:id/calendar", require("./calendar"));

@@ -205,6 +205,9 @@ export default function Wallet() {
   const [toasts, setToasts] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [budget, setBudget] = useState(null);
+  const [budgetInput, setBudgetInput] = useState('');
+  const [budgetMsg, setBudgetMsg] = useState(null);
 
   const [sendForm, setSendForm]   = useState({ destination: '', amount: '', memo: '' });
   const [sending, setSending]     = useState(false);
@@ -295,6 +298,14 @@ export default function Wallet() {
   useEffect(() => {
     unmounted.current = false;
     load();
+    if (user?.role === 'buyer' && typeof api.getBudget === 'function') {
+      api.getBudget()
+        .then((res) => {
+          setBudget(res);
+          setBudgetInput(res.budget != null ? String(res.budget) : '');
+        })
+        .catch(() => {});
+    }
     connectStream();
     return () => {
       unmounted.current = true;
@@ -316,6 +327,21 @@ export default function Wallet() {
       setFundMsg({ type: 'err', text: getStellarErrorMessage(e) || getErrorMessage(e) });
     } finally {
       setFunding(false);
+    }
+  }
+
+  async function handleSaveBudget(e) {
+    e.preventDefault();
+    if (typeof api.setBudget !== 'function') return;
+
+    setBudgetMsg(null);
+    try {
+      const value = budgetInput.trim() === '' ? null : parseFloat(budgetInput);
+      const res = await api.setBudget(value);
+      setBudget(res);
+      setBudgetMsg({ type: 'ok', text: 'Monthly budget updated' });
+    } catch (e) {
+      setBudgetMsg({ type: 'err', text: getErrorMessage(e) });
     }
   }
 
@@ -439,6 +465,59 @@ export default function Wallet() {
               </div>
             )}
           </div>
+
+          {user?.role === 'buyer' && (
+            <div style={s.card}>
+              <h3 style={{ marginBottom: 12, color: '#333' }}>Monthly Budget</h3>
+              <form onSubmit={handleSaveBudget}>
+                <label style={s.label}>Budget limit (XLM)</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    style={{ ...s.input, marginBottom: 0 }}
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Optional"
+                    value={budgetInput}
+                    onChange={(e) => setBudgetInput(e.target.value)}
+                  />
+                  <button type="submit" style={{ ...s.btn, marginTop: 0, whiteSpace: 'nowrap' }}>Save</button>
+                </div>
+              </form>
+
+              {budget?.budget != null && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 13, color: '#555', marginBottom: 8 }}>
+                    Spent: {Number(budget.spentThisMonth || 0).toFixed(2)} / {Number(budget.budget).toFixed(2)} XLM
+                  </div>
+                  <div style={{ height: 12, background: '#edf2f7', borderRadius: 999, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, Number(budget.percentUsed || 0))}%`,
+                        height: '100%',
+                        background: Number(budget.percentUsed || 0) >= 80 ? '#c0392b' : '#2d6a4f',
+                        transition: 'width 200ms ease',
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>
+                    Remaining: {Number(budget.remaining || 0).toFixed(2)} XLM
+                  </div>
+                  {Number(budget.percentUsed || 0) >= 80 && (
+                    <div style={{ ...s.msg, background: '#fff3cd', color: '#856404', marginTop: 10 }}>
+                      Warning: you have used {Number(budget.percentUsed || 0).toFixed(0)}% of your monthly budget.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {budgetMsg && (
+                <div style={{ ...s.msg, background: budgetMsg.type === 'ok' ? '#d8f3dc' : '#fee', color: budgetMsg.type === 'ok' ? '#2d6a4f' : '#c0392b' }}>
+                  {budgetMsg.text}
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={s.card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
