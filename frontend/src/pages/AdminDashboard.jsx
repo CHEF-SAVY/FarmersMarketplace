@@ -34,6 +34,13 @@ export default function AdminDashboard() {
   const [contractMsg, setContractMsg] = useState('');
   const [contractFilter, setContractFilter] = useState({ network: '', type: '' });
 
+  // Contract state viewer
+  const [contractId, setContractId] = useState('');
+  const [contractPrefix, setContractPrefix] = useState('');
+  const [contractState, setContractState] = useState(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractError, setContractError] = useState('');
+
   async function loadStats() {
     try {
       const res = await api.adminGetStats();
@@ -88,6 +95,22 @@ export default function AdminDashboard() {
       await api.adminDeactivateUser(id);
       loadUsers(pagination.page);
     } catch (e) { setError(e.message); }
+  }
+
+  async function loadContractState(e) {
+    e.preventDefault();
+    if (!contractId.trim()) return;
+    setContractLoading(true);
+    setContractError('');
+    setContractState(null);
+    try {
+      const res = await api.getContractState(contractId.trim(), contractPrefix.trim() || undefined);
+      setContractState(res.data);
+    } catch (e) {
+      setContractError(e.message);
+    } finally {
+      setContractLoading(false);
+    }
   }
 
   return (
@@ -170,74 +193,60 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Contract Registry */}
+      {/* Soroban Contract State Viewer */}
       <div style={{ ...s.card, marginTop: 32 }}>
-        <h3 style={{ marginBottom: 16, color: '#333' }}>🔗 Contract Registry</h3>
-        {contractMsg && <div style={{ ...s.err, marginBottom: 12 }}>{contractMsg}</div>}
-        <form onSubmit={handleRegisterContract} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          <input style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, flex: '2 1 200px' }}
-            placeholder="Contract ID (e.g. CB...)" value={contractForm.contract_id}
-            onChange={e => setContractForm(f => ({ ...f, contract_id: e.target.value }))} required />
-          <input style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, flex: '1 1 120px' }}
-            placeholder="Name" value={contractForm.name}
-            onChange={e => setContractForm(f => ({ ...f, name: e.target.value }))} required />
-          <select style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
-            value={contractForm.type} onChange={e => setContractForm(f => ({ ...f, type: e.target.value }))}>
-            <option value="escrow">Escrow</option>
-            <option value="token">Token</option>
-            <option value="other">Other</option>
-          </select>
-          <select style={{ padding: '7px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
-            value={contractForm.network} onChange={e => setContractForm(f => ({ ...f, network: e.target.value }))}>
-            <option value="testnet">Testnet</option>
-            <option value="mainnet">Mainnet</option>
-          </select>
-          <button type="submit" style={{ ...s.deactivate, background: '#2d6a4f', color: '#fff', padding: '7px 16px' }}>Register</button>
+        <h3 style={{ marginBottom: 16, color: '#333' }}>🔍 Soroban Contract State</h3>
+        <form onSubmit={loadContractState} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+          <input
+            style={{ flex: '2 1 260px', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, fontFamily: 'monospace' }}
+            placeholder="Contract ID (base32 or hex)"
+            value={contractId}
+            onChange={e => setContractId(e.target.value)}
+            required
+          />
+          <input
+            style={{ flex: '1 1 140px', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14 }}
+            placeholder="Key prefix (optional)"
+            value={contractPrefix}
+            onChange={e => setContractPrefix(e.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={contractLoading}
+            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#2d6a4f', color: '#fff', fontWeight: 600, cursor: contractLoading ? 'not-allowed' : 'pointer' }}
+          >{contractLoading ? 'Loading…' : 'Fetch State'}</button>
         </form>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <select style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
-            value={contractFilter.network} onChange={e => { const f = { ...contractFilter, network: e.target.value }; setContractFilter(f); loadContracts(f); }}>
-            <option value="">All Networks</option>
-            <option value="testnet">Testnet</option>
-            <option value="mainnet">Mainnet</option>
-          </select>
-          <select style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13 }}
-            value={contractFilter.type} onChange={e => { const f = { ...contractFilter, type: e.target.value }; setContractFilter(f); loadContracts(f); }}>
-            <option value="">All Types</option>
-            <option value="escrow">Escrow</option>
-            <option value="token">Token</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <table style={s.table}>
-          <thead>
-            <tr>
-              <th style={s.th}>Contract ID</th>
-              <th style={s.th}>Name</th>
-              <th style={s.th}>Type</th>
-              <th style={s.th}>Network</th>
-              <th style={s.th}>Deployed</th>
-              <th style={s.th}>By</th>
-              <th style={s.th}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contracts.length === 0
-              ? <tr><td colSpan={7} style={{ ...s.td, color: '#aaa', textAlign: 'center' }}>No contracts registered.</td></tr>
-              : contracts.map(c => (
-                <tr key={c.id}>
-                  <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12 }}>{c.contract_id.slice(0, 16)}…</td>
-                  <td style={s.td}>{c.name}</td>
-                  <td style={s.td}><span style={{ ...s.badge('buyer'), background: c.type === 'escrow' ? '#d8f3dc' : c.type === 'token' ? '#cce5ff' : '#eee' }}>{c.type}</span></td>
-                  <td style={s.td}><span style={{ ...s.badge('buyer'), background: c.network === 'mainnet' ? '#ffeaa7' : '#eee' }}>{c.network}</span></td>
-                  <td style={s.td}>{new Date(c.deployed_at).toLocaleDateString()}</td>
-                  <td style={s.td}>{c.deployed_by_name || '—'}</td>
-                  <td style={s.td}><button style={s.deactivate} onClick={() => handleDeregisterContract(c.id)}>Remove</button></td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
+        {contractError && <div style={s.err}>{contractError}</div>}
+        {contractState && (
+          contractState.length === 0
+            ? <div style={{ color: '#888', fontSize: 14 }}>No storage entries found{contractPrefix ? ` matching prefix "${contractPrefix}"` : ''}.</div>
+            : (
+              <table style={s.table}>
+                <thead>
+                  <tr>
+                    <th style={s.th}>Key</th>
+                    <th style={s.th}>Value</th>
+                    <th style={s.th}>Durability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contractState.map((entry, i) => (
+                    <tr key={i}>
+                      <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>{String(entry.key)}</td>
+                      <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>{JSON.stringify(entry.val)}</td>
+                      <td style={{ ...s.td, fontSize: 12 }}>
+                        <span style={{ padding: '2px 8px', borderRadius: 12, fontWeight: 600, fontSize: 11,
+                          background: entry.durability === 'Temporary' ? '#fff3cd' : '#d8f3dc',
+                          color: entry.durability === 'Temporary' ? '#856404' : '#2d6a4f' }}>
+                          {entry.durability}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+        )}
       </div>
     </div>
   );
