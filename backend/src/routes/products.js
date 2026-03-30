@@ -658,11 +658,13 @@ router.post('/', auth, validate.product, async (req, res) => {
     ]
   );
 
-    'INSERT INTO products (farmer_id, name, description, category, price, quantity, unit, image_url, low_stock_threshold, nutrition, pricing_type, min_weight, max_weight, allergens) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id',
-    [req.user.id, safeName, safeDescription, safeCategory, price, quantity, safeUnit, safeImageUrl, parseInt(req.body.low_stock_threshold) || 5, nutrition ? JSON.stringify(nutrition) : null, pricingType, minWeight, maxWeight, allergenResult.allergens]
+    'INSERT INTO products (farmer_id, name, description, category, price, quantity, unit, image_url, low_stock_threshold, nutrition, pricing_type, min_weight, max_weight, allergens, allowed_regions) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id',
+    [req.user.id, safeName, safeDescription, safeCategory, price, quantity, safeUnit, safeImageUrl, parseInt(req.body.low_stock_threshold) || 5, nutrition ? JSON.stringify(nutrition) : null, pricingType, minWeight, maxWeight, allergenResult.allergens, parseAllowedRegions(req.body.allowed_regions)]
   );
+  const productId = rows[0].id;
+  await db.query('INSERT INTO price_history (product_id, price) VALUES ($1, $2)', [productId, price]);
   await cache.del('products:{}');
-  res.json({ success: true, id: rows[0].id, message: 'Product listed' });
+  res.json({ success: true, id: productId, message: 'Product listed' });
 });
 
 router.patch('/:id', auth, async (req, res) => {
@@ -797,6 +799,10 @@ router.patch('/:id', auth, async (req, res) => {
   const values = Object.values(updates);
   const setClauses = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
   await db.query(`UPDATE products SET ${setClauses} WHERE id = $${keys.length + 1}`, [...Object.values(updates), req.params.id]);
+
+  if (updates.price !== undefined) {
+    await db.query('INSERT INTO price_history (product_id, price) VALUES ($1, $2)', [req.params.id, updates.price]);
+  }
 
   res.json({ success: true, message: 'Product updated' });
 });
@@ -1062,6 +1068,20 @@ router.post('/:id/tiers', auth, async (req, res) => {
     [req.params.id]
   );
   res.json({ success: true, data: newTiers });
+});
+
+// GET /api/products/:id/price-history — last 30 days
+router.get('/:id/price-history', async (req, res) => {
+  const cutoff = db.isPostgres
+    ? `NOW() - INTERVAL '30 days'`
+    : `datetime('now', '-30 days')`;
+  const { rows } = await db.query(
+    `SELECT price, recorded_at FROM price_history
+     WHERE product_id = $1 AND recorded_at >= ${cutoff}
+     ORDER BY recorded_at ASC`,
+    [req.params.id]
+  );
+  res.json({ success: true, data: rows });
 });
 
 module.exports = router;

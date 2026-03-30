@@ -10,6 +10,7 @@ import StarRating from '../components/StarRating';
 import Spinner from '../components/Spinner';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import ShareButtons from '../components/ShareButtons';
+import PriceHistoryChart from '../components/PriceHistoryChart';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 
@@ -96,6 +97,8 @@ export default function ProductDetail() {
 
   // Price tiers state
   const [tiers, setTiers] = useState([]);
+  // Price history state
+  const [priceHistory, setPriceHistory] = useState([]);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -137,6 +140,7 @@ export default function ProductDetail() {
       if (imgs.length > 0) setActiveImg(0);
     }).catch(() => {});
     api.getProductTiers(id).then(res => setTiers(res.data ?? [])).catch(() => setTiers([]));
+    api.getPriceHistory(id).then(res => setPriceHistory(res.data ?? [])).catch(() => setPriceHistory([]));
     api.getProductShareMeta(id).then(res => setShareMeta(res.data ?? null)).catch(() => setShareMeta(null));
     loadReviews();
     api.getProduct(id).then(res => {
@@ -651,6 +655,8 @@ export default function ProductDetail() {
             </div>
           );
         })()}
+
+        <PriceHistoryChart data={priceHistory} />
         <div style={s.price}>
           {unitPrice} XLM{" "}
           <span style={{ fontSize: 14, fontWeight: 400 }}>

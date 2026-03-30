@@ -133,6 +133,7 @@ export const api = {
 
   // Price tiers
   getProductTiers: (id) => request(`/products/${id}/tiers`),
+  getPriceHistory: (id) => request(`/products/${id}/price-history`),
   updateProductTiers: (id, tiers) => request(`/products/${id}/tiers`, { method: 'POST', body: { tiers } }),
 
   uploadProductImage: (file) => {
