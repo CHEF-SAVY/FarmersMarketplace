@@ -250,6 +250,23 @@ export const api = {
   getBudget: () => request('/wallet/budget'),
   setBudget: (monthly_budget) => request('/wallet/budget', { method: 'PATCH', body: { monthly_budget } }),
   withdrawFunds: (destination, amount) => request('/wallet/withdraw', { method: 'POST', body: { destination, amount } }),
+  getContractEvents: (contractId, params = {}) => request(`/contracts/${contractId}/events${toQs(params)}`),
+  getWallet: function() { return request('/wallet'); },
+  getTransactions: function() { return request('/wallet/transactions'); },
+  fundWallet: function() { return request('/wallet/fund', { method: 'POST' }); },
+  getBudget: function() { return request('/wallet/budget'); },
+  setBudget: function(monthly_budget) { return request('/wallet/budget', { method: 'PATCH', body: { monthly_budget } }); },
+  withdrawFunds: function(destination, amount) { return request('/wallet/withdraw', { method: 'POST', body: { destination, amount } }); },
+  getBudget: function() { return request('/wallet/budget'); },
+  setBudget: function(monthly_budget) { return request('/wallet/budget', { method: 'PATCH', body: { monthly_budget } }); },
+  getProductShareMeta: function(id) { return request(`/products/${id}/share`); },
+  deleteProductImage: (productId, imageId) =>
+    request(`/products/${productId}/images/${imageId}`, { method: "DELETE" }),
+  reorderProductImages: (productId, order) =>
+    request(`/products/${productId}/images/reorder`, {
+      method: "PATCH",
+      body: { order },
+    }),
 
   // Subscriptions
   getSubscriptions: () => request('/subscriptions'),

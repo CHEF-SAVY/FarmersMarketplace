@@ -92,6 +92,7 @@ export default function ProductDetail() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [reviewSuccess, setReviewSuccess] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
 
   // Price tiers state
   const [tiers, setTiers] = useState([]);
@@ -123,15 +124,20 @@ export default function ProductDetail() {
   }, [id]);
 
   useEffect(() => {
-    api.getProduct(id).then(res => setProduct(res.data ?? res)).catch(() => navigate('/marketplace'));
-    api.getProductShareMeta(id).then(res => setShareMeta(res.data ?? null)).catch(() => setShareMeta(null));
-    loadReviews();
     api.getProductImages(id).then(res => {
       const imgs = res.data ?? [];
       setImages(imgs);
       if (imgs.length > 0) setActiveImg(0);
     }).catch(() => {});
     api.getProductTiers(id).then(res => setTiers(res.data ?? [])).catch(() => setTiers([]));
+    api.getProductShareMeta(id).then(res => setShareMeta(res.data ?? null)).catch(() => setShareMeta(null));
+    loadReviews();
+    api.getProduct(id).then(res => {
+      const p = res.data ?? res;
+      setProduct(p);
+      if (p.pricing_model === 'pwyw') setCustomPrice(String(p.min_price));
+      else if (p.pricing_model === 'donation') setCustomPrice('1.00');
+    }).catch(() => navigate('/marketplace'));
     api.getCalendar(id).then(res => {
       const weeks = res.data ?? [];
       setCalendar(weeks);
@@ -218,6 +224,18 @@ export default function ProductDetail() {
     ? (product.price * (parseFloat(weight) || 0)).toFixed(2)
     : (unitPrice * qty).toFixed(2);
   const total = couponResult ? couponResult.final_total.toFixed(2) : subtotal;
+    const isFlashSaleActive = Boolean(product.flash_sale_price && product.flash_sale_ends_at && new Date(product.flash_sale_ends_at).getTime() > Date.now());
+    const baseUnitPrice = getTierPrice(qty);
+    const unitPrice = isFlashSaleActive ? Number(product.flash_sale_price) : baseUnitPrice;
+    
+    const effectiveUnitPrice = (product.pricing_model === 'pwyw' || product.pricing_model === 'donation')
+      ? (parseFloat(customPrice) || 0)
+      : unitPrice;
+
+    const subtotal = product?.pricing_type === 'weight'
+      ? (product.price * (parseFloat(weight) || 0)).toFixed(2)
+      : (effectiveUnitPrice * qty).toFixed(2);
+    const total = couponResult ? couponResult.final_total.toFixed(2) : subtotal;
 
   async function handleAlert() {
     setAlertLoading(true);
@@ -264,6 +282,14 @@ export default function ProductDetail() {
       if (w < product.min_weight) return setError(`Minimum weight is ${product.min_weight} ${product.unit}`);
       if (w > product.max_weight) return setError(`Maximum weight is ${product.max_weight} ${product.unit}`);
     }
+    if (product.pricing_model === 'pwyw') {
+      const p = parseFloat(customPrice);
+      if (!customPrice || isNaN(p) || p < product.min_price) return setError(`Minimum price is ${product.min_price} XLM`);
+    }
+    if (product.pricing_model === 'donation') {
+      const p = parseFloat(customPrice);
+      if (!customPrice || isNaN(p) || p <= 0) return setError('Donation amount must be positive');
+    }
     if (sourceAsset && pathEstimateError) return setError(pathEstimateError);
     if (sourceAsset && !pathEstimate) return setError('Waiting for path estimate...');
     setLoading(true);
@@ -277,6 +303,7 @@ export default function ProductDetail() {
         coupon_code: couponResult ? couponCode.trim() : undefined,
         source_asset: sourceAsset ? { code: sourceAsset.asset_code, issuer: sourceAsset.asset_issuer } : undefined,
         weight: product.pricing_type === 'weight' ? parseFloat(weight) : undefined,
+        custom_price: (product.pricing_model === 'pwyw' || product.pricing_model === 'donation') ? parseFloat(customPrice) : undefined,
       });
       setResult({ ...res, escrow: useEscrow });
     } catch (e) {
@@ -329,6 +356,15 @@ export default function ProductDetail() {
                     </a>
                   </p>
                 )}
+                <p style={{ marginTop: 8, fontSize: 14 }}>
+                  {t('productDetail.escrowOrderInfo', { id: result.orderId, price: result.totalPrice })}
+                </p>
+                {result.balanceId ? (
+                  <p style={{ marginTop: 4, fontSize: 12, color: '#555' }}>
+                    Balance ID: <a href={`https://stellar.expert/explorer/testnet/claimable-balance/${result.balanceId}`}
+                      target="_blank" rel="noreferrer" style={{ color: '#2d6a4f', wordBreak: 'break-all' }}>{result.balanceId}</a>
+                  </p>
+                ) : null}
                 <p style={{ marginTop: 4, fontSize: 12, color: '#888' }}>{t('productDetail.escrowNote')}</p>
               </>
             ) : (
@@ -544,6 +580,81 @@ export default function ProductDetail() {
             )}
           </div>
         )}
+        {product.pricing_model === 'fixed' ? (
+          <>
+            <div style={s.price}>
+              {unitPrice.toFixed(2)} XLM{" "}
+              <span style={{ fontSize: 14, fontWeight: 400 }}>
+                / {product.unit}
+              </span>
+              {tiers.length > 0 && (
+                <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>
+                  (bulk pricing available)
+                </span>
+              )}
+            </div>
+            {isFlashSaleActive && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ ...s.badge, background: '#fee2e2', color: '#b42318', fontWeight: 700, marginBottom: 4 }}>Flash Sale</div>
+                <FlashSaleCountdown endsAt={product.flash_sale_ends_at} />
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ marginBottom: 20 }}>
+            <label style={s.label}>{product.pricing_model === 'pwyw' ? 'Pay What You Want' : 'Donation'}</label>
+            <div style={s.row}>
+              <input
+                style={{ ...s.input, width: 120 }}
+                type="number"
+                min={product.pricing_model === 'pwyw' ? product.min_price : 0.01}
+                step="0.01"
+                value={customPrice}
+                onChange={e => { setCustomPrice(e.target.value); setCouponResult(null); setCouponError(''); }}
+                placeholder={product.pricing_model === 'pwyw' ? `Min ${product.min_price}` : 'Amount'}
+              />
+              <span style={{ fontSize: 13, color: '#888' }}>XLM / {product.unit}</span>
+            </div>
+            {product.pricing_model === 'pwyw' && (
+              <div style={{ fontSize: 13, color: '#888' }}>
+                Suggested price: {product.price} XLM · Minimum: {product.min_price} XLM
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Allergen badges */}
+        {(() => {
+          let allergens = [];
+          try { allergens = product.allergens ? JSON.parse(product.allergens) : []; } catch {}
+          return (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 6 }}>Allergens</div>
+              {allergens.length === 0 ? (
+                <span style={{ fontSize: 12, color: '#888', background: '#f5f5f5', borderRadius: 4, padding: '3px 8px' }}>No known allergens</span>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {allergens.map(a => (
+                    <span key={a} style={{ fontSize: 12, fontWeight: 600, background: '#fff3cd', color: '#856404', border: '1px solid #f0c040', borderRadius: 4, padding: '3px 8px' }}>
+                      ⚠️ {a.charAt(0).toUpperCase() + a.slice(1)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+        <div style={s.price}>
+          {unitPrice} XLM{" "}
+          <span style={{ fontSize: 14, fontWeight: 400 }}>
+            / {product.unit}
+          </span>
+          {tiers.length > 0 && (
+            <span style={{ fontSize: 12, color: '#666', marginLeft: 8 }}>
+              (bulk pricing available)
+            </span>
+          )}
+        </div>
         {usd(unitPrice) && (
           <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>
             {usd(unitPrice)} {t('productDetail.perUnit', { unit: product.unit })} <span style={{ fontSize: 11, color: '#bbb' }}>{t('productDetail.approxRate')}</span>
