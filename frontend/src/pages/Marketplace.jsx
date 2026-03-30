@@ -745,6 +745,11 @@ export default function Marketplace() {
               <div style={s.qty}>
                 {t("marketplace.available", { qty: p.quantity, unit: p.unit })}
               </div>
+              {p.min_order_quantity > 1 && (
+                <div style={{ fontSize: 11, color: '#e67e22', fontWeight: 600, marginTop: 2 }}>
+                  Min. order: {p.min_order_quantity} {p.unit}
+                </div>
+              )}
               {p.review_count > 0 && (
                 <div style={{ marginTop: 6 }}>
                   <StarRating

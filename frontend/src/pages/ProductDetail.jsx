@@ -124,6 +124,13 @@ export default function ProductDetail() {
   }, [id]);
 
   useEffect(() => {
+    api.getProduct(id).then(res => {
+      const p = res.data ?? res;
+      setProduct(p);
+      setQty(p.min_order_quantity || 1);
+    }).catch(() => navigate('/marketplace'));
+    api.getProductShareMeta(id).then(res => setShareMeta(res.data ?? null)).catch(() => setShareMeta(null));
+    loadReviews();
     api.getProductImages(id).then(res => {
       const imgs = res.data ?? [];
       setImages(imgs);
@@ -685,6 +692,11 @@ export default function ProductDetail() {
 
         <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
           {t('productDetail.inStock', { qty: product.quantity, unit: product.unit })}
+          {product.min_order_quantity > 1 && (
+            <span style={{ marginLeft: 10, color: '#e67e22', fontWeight: 600 }}>
+              Min. order: {product.min_order_quantity} {product.unit}
+            </span>
+          )}
         </div>
 
         {product.pricing_type === 'weight' ? (
@@ -710,9 +722,9 @@ export default function ProductDetail() {
         ) : (
           <div style={s.row}>
             <label style={{ fontSize: 14 }}>{t('productDetail.quantity')}</label>
-            <input style={s.input} type="number" min={1} max={product.quantity} value={qty}
+            <input style={s.input} type="number" min={product.min_order_quantity || 1} max={product.quantity} value={qty}
               onChange={e => {
-                setQty(Math.max(1, Math.min(product.quantity, parseInt(e.target.value) || 1)));
+                setQty(Math.max(product.min_order_quantity || 1, Math.min(product.quantity, parseInt(e.target.value) || (product.min_order_quantity || 1))));
                 setCouponResult(null);
                 setCouponError('');
               }} />

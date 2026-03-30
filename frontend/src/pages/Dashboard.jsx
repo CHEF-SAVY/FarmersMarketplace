@@ -24,6 +24,7 @@ const EMPTY_FORM = {
   quantity: '',
   unit: 'kg',
   category: 'other',
+  min_order_quantity: '',
   batch_id: '',
   pricing_type: 'unit',
   min_weight: '',
@@ -429,6 +430,7 @@ export default function Dashboard() {
         pricing_type: form.pricing_type || 'unit',
         min_weight: form.pricing_type === 'weight' ? parseFloat(form.min_weight) : undefined,
         max_weight: form.pricing_type === 'weight' ? parseFloat(form.max_weight) : undefined,
+        min_order_quantity: form.min_order_quantity ? parseInt(form.min_order_quantity) : undefined,
         allergens: form.allergens && form.allergens.length > 0 ? form.allergens : undefined,
       });
       setMsg({ type: 'ok', text: t('dashboard.productListedOk') });
@@ -586,6 +588,8 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+            <label style={s.label}>Min Order Quantity (MOQ)</label>
+            <input style={s.input} type="number" min="1" step="1" value={form.min_order_quantity || ''} onChange={e => setForm({ ...form, min_order_quantity: e.target.value })} placeholder="1 (default)" />
             <label style={s.label}>Pricing Model</label>
             <select style={s.input} value={form.pricing_model || 'fixed'} onChange={e => setForm({ ...form, pricing_model: e.target.value, min_price: e.target.value === 'pwyw' ? (form.min_price || '') : '' })}>
               <option value="fixed">Fixed Price</option>

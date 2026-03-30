@@ -598,6 +598,14 @@ router.post('/', auth, validate.product, async (req, res) => {
   const safeCategory    = sanitizeText(category || 'other');
   const safeImageUrl    = image_url && /^\/uploads\/[a-f0-9]+\.(jpg|jpeg|png|webp)$/i.test(image_url) ? image_url : null;
 
+  const pricingType = req.body.pricing_type === 'weight' ? 'weight' : 'unit';
+  const minWeight   = pricingType === 'weight' ? parseFloat(req.body.min_weight) : null;
+  const maxWeight   = pricingType === 'weight' ? parseFloat(req.body.max_weight) : null;
+  const minOrderQty = parseInt(req.body.min_order_quantity, 10) || 1;
+
+  const { rows } = await db.query(
+    'INSERT INTO products (farmer_id, name, description, category, price, quantity, unit, image_url, low_stock_threshold, nutrition, pricing_type, min_weight, max_weight, min_order_quantity) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id',
+    [req.user.id, safeName, safeDescription, safeCategory, price, quantity, safeUnit, safeImageUrl, parseInt(req.body.low_stock_threshold) || 5, nutrition ? JSON.stringify(nutrition) : null, pricingType, minWeight, maxWeight, minOrderQty]
   const model = pricing_model || 'fixed';
   const minPrice = model === 'pwyw' ? parseFloat(req.body.min_price) : null;
   if (model === 'pwyw' && (isNaN(minPrice) || minPrice < 0)) {
@@ -670,6 +678,7 @@ router.patch('/:id', auth, async (req, res) => {
     'pricing_type', 'is_preorder', 'preorder_delivery_date'
   ];
   const allowed = ['name', 'description', 'price', 'quantity', 'unit', 'category', 'low_stock_threshold', 'carbon_kg_per_unit'];
+  const allowed = ['name', 'description', 'price', 'quantity', 'unit', 'category', 'low_stock_threshold', 'nutrition', 'pricing_type', 'min_weight', 'max_weight', 'min_order_quantity'];
   const allowed = ['name', 'description', 'price', 'quantity', 'unit', 'category', 'low_stock_threshold', 'nutrition', 'pricing_type', 'min_weight', 'max_weight', 'allergens'];
   const updates = {};
   for (const key of allowed) {
@@ -773,6 +782,11 @@ router.patch('/:id', auth, async (req, res) => {
     updates.nutrition = updates.nutrition ? JSON.stringify(updates.nutrition) : null;
   }
 
+  if (updates.min_order_quantity !== undefined) {
+    updates.min_order_quantity = parseInt(updates.min_order_quantity, 10);
+    if (isNaN(updates.min_order_quantity) || updates.min_order_quantity < 1) {
+      return err(res, 400, 'min_order_quantity must be a positive integer', 'validation_error');
+    }
   if (updates.allergens !== undefined) {
     const allergenResult = parseAndValidateAllergens(updates.allergens);
     if (allergenResult.error) return err(res, 400, allergenResult.error, 'validation_error');

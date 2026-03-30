@@ -79,6 +79,7 @@ module.exports = {
     pricing_type: z.enum(['unit', 'weight']).optional(),
     min_weight: z.coerce.number().positive('min_weight must be positive').optional(),
     max_weight: z.coerce.number().positive('max_weight must be positive').optional(),
+    min_order_quantity: z.coerce.number().int().positive('min_order_quantity must be a positive integer').optional(),
     pricing_model: z.enum(['fixed', 'pwyw', 'donation']).default('fixed'),
     min_price: z.coerce.number().nonnegative('min_price must be non-negative').optional(),
   }).refine(d => {
